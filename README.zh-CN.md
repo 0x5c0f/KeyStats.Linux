@@ -4,7 +4,7 @@
 
 隐私优先的 Linux 键盘鼠标统计工具 — 基于 GNOME Shell 集成，Rust 守护进程后端。
 
-受 [KeyStats](https://github.com/debugtheworldbot/KeyStats)（macOS &amp; Windows）启发，这是一个独立的 Linux 实现，仅追踪聚合输入统计数据，绝不记录实际按键或鼠标位置。
+受 [KeyStats](https://github.com/debugtheworldbot/KeyStats)（macOS &amp; Windows）启发，这是一个独立的 Linux 实现的键盘和鼠标输入统计工具。
 
 ## 架构
 
@@ -115,7 +115,7 @@ KeyStats.Linux/
 
 ## 隐私说明
 
-KeyStats.Linux 绝不记录实际按键内容、鼠标位置或任何用户输入数据。守护进程在内存中处理原始 evdev 事件，仅提取聚合计数和距离数据，随后丢弃原始事件数据。仅汇总统计数据会被持久化到 SQLite。
+KeyStats.Linux 从原始输入事件中聚合记录按键频次和鼠标移动距离。守护进程在内存中处理 evdev 事件，仅提取聚合计数和距离数据，随后丢弃原始事件数据。仅汇总统计数据会被持久化到 SQLite。
 
 ## 开源许可
 

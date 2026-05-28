@@ -4,7 +4,7 @@
 
 Privacy-first keyboard and mouse statistics for Linux — a GNOME Shell integration with a Rust-backed daemon.
 
-Inspired by [KeyStats](https://github.com/debugtheworldbot/KeyStats) (macOS &amp; Windows), this is an independent Linux implementation that tracks aggregate input statistics without ever recording actual keystrokes or mouse positions.
+Inspired by [KeyStats](https://github.com/debugtheworldbot/KeyStats) (macOS &amp; Windows), this is an independent Linux implementation that tracks keyboard and mouse input statistics.
 
 ## Architecture
 
@@ -115,7 +115,7 @@ KeyStats.Linux/
 
 ## Privacy
 
-KeyStats.Linux never records actual keystrokes, mouse positions, or any user-input content. The daemon processes raw evdev events in-memory, extracts only aggregate counts and distances, then discards the original event data. Only aggregated statistics are persisted to SQLite.
+KeyStats.Linux records key press frequency, mouse movement distance aggregated from raw input events. The daemon processes evdev events in-memory, extracts only aggregate counts and distances, then discards the original event data. Only aggregated statistics are persisted to SQLite.
 
 ## License
 
