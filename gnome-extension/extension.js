@@ -57,6 +57,35 @@ function fmtScrollDist(px) {
     return Math.round(px) + ' px';
 }
 
+/* ── Key name abbreviation ────────────────────────────── */
+
+const KEY_ABBREV = {
+    'Backspace': 'Bksp',
+    'LeftShift': 'LShift',
+    'RightShift': 'RShift',
+    'LeftCtrl': 'LCtrl',
+    'RightCtrl': 'RCtrl',
+    'LeftAlt': 'LAlt',
+    'RightAlt': 'RAlt',
+    'CapsLock': 'Caps',
+    'PageUp': 'PgUp',
+    'PageDown': 'PgDn',
+    'NumLock': 'Num',
+    'ScrollLock': 'ScrLk',
+    'PrintScreen': 'PrtSc',
+    'Escape': 'Esc',
+    'Delete': 'Del',
+    'Insert': 'Ins',
+    'Multiply': '*',
+    'Divide': '/',
+    'Subtract': '-',
+    'Decimal': '.',
+};
+
+function abbrevKey(name) {
+    return KEY_ABBREV[name] ?? name;
+}
+
 /* ── Widget builders ────────────────────────────────── */
 
 function sectionLabel(text) {
@@ -284,7 +313,7 @@ export default class KeyStatsExtension extends Extension {
                 let k = keys[i];
                 let row = new St.BoxLayout({style_class: 'ks-key-row-item'});
                 let badge = new St.Label({
-                    text: k.key_name ?? '?',
+                    text: abbrevKey(k.key_name ?? '?'),
                     style_class: 'ks-key-badge',
                 });
                 let cnt = new St.Label({
