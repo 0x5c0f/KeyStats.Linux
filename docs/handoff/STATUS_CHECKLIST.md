@@ -19,22 +19,27 @@
 - [x] D-Bus 命名符合规范（x0x5c0f 前缀）
 - [x] 隐私描述文案优化
 - [x] 本地构建安装验证通过
-
-## Partially Complete
-
-- [ ] **GNOME 扩展 UI 风格** — Key Breakdown pill badge 样式可优化
+- [x] Popup UI 优化 — Key Breakdown pill badge 样式改进
+- [x] Dynamic Accent Color 开关已禁用（功能搁置）
+- [x] keystatsctl status D-Bus 修复
+- [x] 二进制分发包（tarball + extension zip）
+- [x] GitHub Actions CI/CD（tag 驱动发布）
+- [x] GitHub 仓库创建 — `https://github.com/0x5c0f/KeyStats.Linux`
+- [x] Fedora GNOME 冒烟测试通过
+- [x] extensions.gnome.org 提交审核（等待审核中）
+- [x] README 截图嵌入（中英文）
 
 ## Not Started
 
-- [ ] **Dynamic Accent Color**（中优先级）— GSettings `dynamic-color` 键和 prefs.js 开关已有，逻辑未实现
-- [ ] **Fedora GNOME 冒烟测试**（中优先级）
-- [ ] **deb/rpm 打包验证**（低优先级）— cargo-deb/cargo-rpm 命令已记录，未实测
 - [ ] **Per-app 统计**（研究）— Wayland 限制
 - [ ] **KDE/其他 DE 支持**（研究）
-- [ ] **extensions.gnome.org 提交审核**（低优先级）
-- [ ] **GitHub 仓库创建** — `https://github.com/0x5c0f/KeyStats.Linux`
-- [ ] **键盘热力图** — 明确不做（与隐私设计冲突）
+
+## Deferred
+
+- **Dynamic Accent Color** — GSettings 键和 prefs.js 开关已有，逻辑暂不实现
+- **键盘热力图** — 明确不做（与隐私设计冲突）
+- **deb/rpm 打包** — 保持现有 tarball + zip 安装模式
 
 ## Priority Order
 
-1. Popup UI 优化（高）→ 2. Dynamic Accent Color（中）→ 3. Fedora 冒烟测试（中）→ 4. deb/rpm 打包（低）→ 5. Per-app 统计（研究）→ 6. KDE 支持（研究）
+1. Per-app 统计（研究）→ 2. KDE 支持（研究）

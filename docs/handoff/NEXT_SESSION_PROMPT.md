@@ -2,7 +2,7 @@
 
 ## Context
 
-我们正在独立开发 KeyStats.Linux — 一个从 KeyStats fork 中拆分出来的独立项目。新仓库位于 `/home/cxd/Projects/aiediter/KeyStats.Linux`，已通过本地验证（`make build && make install` 成功）。
+KeyStats.Linux — 隐私优先的 Linux 键盘鼠标统计工具，v0.1.0 已发布。仓库位于 `/home/cxd/Projects/aiediter/KeyStats.Linux`，远程 `https://github.com/0x5c0f/KeyStats.Linux`。
 
 ## Files to Read First
 
@@ -12,11 +12,10 @@
 
 ## Current Phase
 
-- 核心 Linux 移植已完成（daemon + CLI + GNOME 扩展）
-- i18n 已实现（英文 + 简体中文）
-- 项目已从上游 fork 拆分为独立仓库
-- 原仓库 `feat/linux-gnome-next` 分支仅保留 i18n 提交
-- 后续所有开发在新仓库进行
+- 核心功能已完成，v0.1.0 已发布
+- extensions.gnome.org 已提交审核
+- CI/CD 为 tag 驱动发布（手动推送标签触发）
+- 分支策略：release（开发）→ main（发布基线）
 
 ## Strict Constraints
 
@@ -25,14 +24,15 @@
 3. **每次功能更新后，用户确认功能有效前不要 commit**
 4. **同类修改合并为一个 commit，避免过多琐碎提交**
 5. **开发过程中遇到需要安装的外部依赖，先告知用户**
+6. **任何改动先从 release 创建子分支（feat/ 或 fix/），不要在 release 上直接修改**
+7. **CLAUDE.md 等工具配置文件不纳入提交**
 
 ## Next Recommended Task
 
-从待办清单中选取下一项（优先级从高到低）：
+剩余研究类任务（按优先级）：
 
-1. **Popup UI 优化**（高）— Key Breakdown pill badge 样式
-2. **Dynamic Accent Color**（中）— GSettings 键和 prefs.js 开关已就位，缺少逻辑实现
-3. **Fedora GNOME 冒烟测试**（中）
+1. **Per-app 统计**（研究）— Wayland 下无法获取窗口信息，需调研方案
+2. **KDE/其他 DE 支持**（研究）— 需调研 KDE 面板集成方式
 
 ## Verification
 

@@ -9,8 +9,8 @@ KeyStats.Linux 是隐私优先的 Linux 键盘鼠标统计工具，追踪输入�
 ## Repository
 
 - 本地路径：`/home/cxd/Projects/aiediter/KeyStats.Linux`
-- 远程：尚未创建（计划 `https://github.com/0x5c0f/KeyStats.Linux`）
-- 当前分支：`main`（仅本地提交）
+- 远程：`https://github.com/0x5c0f/KeyStats.Linux`
+- v0.1.0 已发布（tag 驱动发布流程）
 
 ## Architecture
 
@@ -36,7 +36,7 @@ KeyStats.Linux 是隐私优先的 Linux 键盘鼠标统计工具，追踪输入�
 - **evdev** — Linux input event 读取
 - **zbus** — D-Bus 会话总线通信
 - **rusqlite** — SQLite 持久化
-- **GJS** (JavaScript) — GNOME Shell 扩展（GNOME 45–48）
+- **GJS** (JavaScript) — GNOME Shell 扩展（GNOME 45+）
 - **GNU gettext** — 国际化（pot/po/mo）
 - **Make** — 构建/安装/打包
 
@@ -67,14 +67,19 @@ KeyStats.Linux/
 │   ├── stylesheet.css          ← 双主题 CSS
 │   ├── schemas/                ← GSettings XML
 │   ├── po/                     ← gettext 源文件
+│   ├── locale/                 ← 编译后的 .mo 文件
 │   └── Makefile                ← 扩展构建/安装
 ├── packaging/
 │   ├── systemd/keystats.service ← 用户 systemd 单元
-│   └── udev/60-keystats-input.rules ← 输入设备权限
-└── docs/
-    ├── superpowers/specs/      ← 设计规格
-    ├── superpowers/plans/      ← 实现计划
-    └── handoff/                ← 交接文档
+│   ├── udev/60-keystats-input.rules ← 输入设备权限
+│   └── dist/                   ← 二进制分发包（Makefile + README）
+├── docs/
+│   ├── images/                 ← 扩展截图
+│   ├── superpowers/specs/      ← 设计规格
+│   ├── superpowers/plans/      ← 实现计划
+│   └── handoff/                ← 交接文档
+└── .github/workflows/
+    └── release.yml             ← tag 驱动发布 CI
 ```
 
 ## Build & Install
@@ -83,12 +88,22 @@ KeyStats.Linux/
 make build    # cargo build --release + locale compile
 make install  # daemon + systemd + extension (glib-compile-schemas included)
 make zip      # extension zip for gnome-extensions install
+make dist     # 打包二进制分发包（tarball）
 make test     # cargo test
 make check    # cargo check + fmt + clippy
 make clean    # clean all artifacts
 ```
 
 安装路径：`~/.local/bin/`（用户级，无需 sudo）
+
+## Branch & Release Strategy
+
+- **release** — 开发分支，所有功能从 release 创建 feat/fix 子分支
+- **main** — 发布基线，最新代码不等于最新发布
+- **发布流程**：手动推送 tag 触发
+  - `v*-rc.*` 标签 → 预发布（prerelease）
+  - `v*` 标签 → 正式发布
+- release 分支推送不触发任何发布
 
 ## Design Principles
 
@@ -102,19 +117,22 @@ make clean    # clean all artifacts
 - SQLite 持久化（按天存储）
 - D-Bus API（GetTodayStats, GetHistory, GetTopKeys, GetSettings 等）
 - GNOME 面板指示器 + 弹出面板 + 偏好设置
-- KPS/CPS 实时速率显示
+- KPS/CPS 实时速率 + 峰值追踪
 - 7 天历史柱状图
-- 按键详情（前 15 键）
+- 按键详情（前 15 键，3 列布局）
 - 系统主题自适应（深色/浅色）
 - i18n 国际化（英文 + 简体中文，gettext）
 - systemd 用户服务 + udev 输入权限规则
 - USB/蓝牙设备热插拔重扫描
 - 根 Makefile 统一构建/安装
+- 二进制分发包（tarball + extension zip）
+- GitHub Actions CI/CD（tag 驱动发布）
+- extensions.gnome.org 提交审核
 
 ## Known Constraints
 
 - 无 per-app 统计（Wayland 限制）
-- 仅 GNOME Shell 45–48
+- 仅 GNOME Shell 45+
 - 不记录按键内容或鼠标路径（隐私设计）
 
 ## Verification
