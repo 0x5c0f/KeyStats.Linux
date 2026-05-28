@@ -47,7 +47,7 @@ Inspired by [KeyStats](https://github.com/debugtheworldbot/KeyStats) (macOS &amp
 ### Prerequisites
 
 - **Rust** 1.70+
-- **GNOME Shell** 45–48
+- **GNOME Shell** 45+
 - **input** group membership: `sudo usermod -aG input $USER` (log out/in after)
 - **gettext** (for locale compilation)
 - **glib2** (for `glib-compile-schemas`)

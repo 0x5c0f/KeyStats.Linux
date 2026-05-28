@@ -2,7 +2,7 @@
   "name": "KeyStats",
   "description": "Privacy-first keyboard and mouse statistics in your GNOME top bar",
   "uuid": "keystats@0x5c0f.github.io",
-  "shell-version": ["45", "46", "47", "48"],
+  "shell-version": ["45", "46", "47", "48", "49", "50"],
   "url": "https://github.com/0x5c0f/KeyStats.Linux",
   "gettext-domain": "keystats",
   "settings-schema": "org.gnome.shell.extensions.keystats",
