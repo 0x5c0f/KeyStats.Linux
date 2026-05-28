@@ -143,7 +143,7 @@
 .ks-dark .ks-sep { background-color: rgba(255, 255, 255, 0.08); }
 
 /* Key badges */
-.ks-dark .ks-key-badge { background-color: rgba(255, 255, 255, 0.1); color: #ffffff; }
+.ks-dark .ks-key-badge { background-color: rgba(255, 255, 255, 0.1); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.06); }
 .ks-dark .ks-key-badge-count { color: #8a8a8a; }
 .ks-dark .ks-key-col-sep { background-color: rgba(255, 255, 255, 0.06); }
 
@@ -215,7 +215,7 @@
 .ks-light .ks-sep { background-color: rgba(0, 0, 0, 0.08); }
 
 /* Key badges */
-.ks-light .ks-key-badge { background-color: rgba(0, 0, 0, 0.05); color: #1a1a1a; }
+.ks-light .ks-key-badge { background-color: rgba(0, 0, 0, 0.05); color: #1a1a1a; border: 1px solid rgba(0, 0, 0, 0.08); }
 .ks-light .ks-key-badge-count { color: #8a8a8a; }
 .ks-light .ks-key-col-sep { background-color: rgba(0, 0, 0, 0.06); }
 

@@ -3,6 +3,7 @@
 #   make build    — build daemon + CLI (release) and compile locale
 #   make install  — install daemon + systemd service + GNOME extension
 #   make zip      — package extension as zip for distribution
+#   make dist     — create binary tarball for GitHub releases
 #   make test     — cargo test (all crates)
 #   make check    — cargo check + fmt + clippy
 #   make clean    — remove build artifacts and generated files
@@ -11,7 +12,11 @@ PREFIX       := $(HOME)/.local
 SYSTEMD_USER := $(HOME)/.config/systemd/user
 EXT_DIR      := $(HOME)/.local/share/gnome-shell/extensions/keystats@0x5c0f.github.io
 
-.PHONY: build install zip test check clean
+VERSION      := $(shell cargo metadata --no-deps --format-version=1 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin)['packages'][0]['version'])" 2>/dev/null || echo "0.1.0")
+DIST_NAME    := keystats-$(VERSION)-linux-x86_64
+DIST_DIR     := target/dist/$(DIST_NAME)
+
+.PHONY: build install zip dist test check clean
 
 # ── Build ──────────────────────────────────────────────
 
@@ -54,6 +59,20 @@ install-extension: build-locale
 
 zip: build-locale
 	cd gnome-extension && $(MAKE) zip
+
+dist: build
+	@rm -rf target/dist
+	@mkdir -p $(DIST_DIR)/bin $(DIST_DIR)/systemd $(DIST_DIR)/udev
+	cp target/release/keystats-daemon $(DIST_DIR)/bin/
+	cp target/release/keystatsctl $(DIST_DIR)/bin/
+	cp packaging/systemd/keystats.service $(DIST_DIR)/systemd/
+	cp packaging/udev/60-keystats-input.rules $(DIST_DIR)/udev/
+	cp packaging/dist/Makefile $(DIST_DIR)/
+	cp packaging/dist/README.md $(DIST_DIR)/
+	cp packaging/dist/README.zh-CN.md $(DIST_DIR)/
+	@tar -czf target/dist/$(DIST_NAME).tar.gz -C target/dist $(DIST_NAME)
+	@rm -rf $(DIST_DIR)
+	@echo "Created target/dist/$(DIST_NAME).tar.gz"
 
 # ── Test & Check ───────────────────────────────────────
 
