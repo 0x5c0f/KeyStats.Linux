@@ -67,6 +67,9 @@ dist: build
 	cp target/release/keystatsctl $(DIST_DIR)/bin/
 	cp packaging/systemd/keystats.service $(DIST_DIR)/systemd/
 	cp packaging/udev/60-keystats-input.rules $(DIST_DIR)/udev/
+	cp packaging/dist/Makefile $(DIST_DIR)/
+	cp packaging/dist/README.md $(DIST_DIR)/
+	cp packaging/dist/README.zh-CN.md $(DIST_DIR)/
 	@tar -czf target/dist/$(DIST_NAME).tar.gz -C target/dist $(DIST_NAME)
 	@rm -rf $(DIST_DIR)
 	@echo "Created target/dist/$(DIST_NAME).tar.gz"

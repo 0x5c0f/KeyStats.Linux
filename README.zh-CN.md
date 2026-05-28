@@ -47,7 +47,7 @@
 ### 前提条件
 
 - **Rust** 1.70+
-- **GNOME Shell** 45–48
+- **GNOME Shell** 45+
 - **input** 用户组权限：`sudo usermod -aG input $USER`（执行后重新登录）
 - **gettext**（用于语言包编译）
 - **glib2**（用于 `glib-compile-schemas`）
