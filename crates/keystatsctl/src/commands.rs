@@ -1,13 +1,83 @@
 use evdev::Device;
+use std::collections::HashMap;
+use zbus::zvariant::Value;
+
+const BUS_NAME: &str = "io.github.x0x5c0f.KeyStats";
+const OBJ_PATH: &str = "/io/github/0x5c0f/KeyStats";
+const IFACE: &str = "io.github.x0x5c0f.KeyStats1";
+
+fn get_u64(map: &HashMap<String, Value<'_>>, key: &str) -> u64 {
+    match map.get(key) {
+        Some(Value::U64(v)) => *v,
+        _ => 0,
+    }
+}
+
+fn get_f64(map: &HashMap<String, Value<'_>>, key: &str) -> f64 {
+    match map.get(key) {
+        Some(Value::F64(v)) => *v,
+        _ => 0.0,
+    }
+}
+
+fn get_u32(map: &HashMap<String, Value<'_>>, key: &str) -> u32 {
+    match map.get(key) {
+        Some(Value::U32(v)) => *v,
+        _ => 0,
+    }
+}
 
 pub fn status() {
-    println!("keystats daemon status: not connected (stub)");
+    let conn = match zbus::blocking::Connection::session() {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("Failed to connect to D-Bus session bus: {}", e);
+            return;
+        }
+    };
+
+    let reply = conn.call_method(
+        Some(BUS_NAME),
+        OBJ_PATH,
+        Some(IFACE),
+        "GetTodayStats",
+        &(),
+    );
+
+    let body = match reply {
+        Ok(msg) => msg,
+        Err(e) => {
+            println!("keystats daemon status: not connected");
+            eprintln!("  ({})", e);
+            return;
+        }
+    };
+
+    let body_inner = body.body();
+    let stats: HashMap<String, Value<'_>> = match body_inner.deserialize() {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("Failed to parse daemon response: {}", e);
+            return;
+        }
+    };
+
+    let key_presses = get_u64(&stats, "keyPresses");
+    let total_clicks = get_u64(&stats, "totalClicks");
+    let mouse_dist = get_f64(&stats, "mouseDistance");
+    let scroll_dist = get_f64(&stats, "scrollDistance");
+    let kps = get_u32(&stats, "currentKPS");
+    let peak_kps = get_u32(&stats, "peakKPS");
+    let cps = get_u32(&stats, "currentCPS");
+    let peak_cps = get_u32(&stats, "peakCPS");
+
+    println!("keystats daemon status: connected");
     println!("Today stats:");
-    println!("  Key presses: 0");
-    println!("  Total clicks: 0");
-    println!("  Mouse distance: 0");
-    println!("  Scroll distance: 0");
-    println!("  KPS: 0 (peak 0)  CPS: 0 (peak 0)");
+    println!("  Key presses: {}", key_presses);
+    println!("  Total clicks: {}", total_clicks);
+    println!("  Mouse distance: {:.0}", mouse_dist);
+    println!("  Scroll distance: {:.0}", scroll_dist);
+    println!("  KPS: {} (peak {})  CPS: {} (peak {})", kps, peak_kps, cps, peak_cps);
 }
 
 pub fn doctor() {
