@@ -1,0 +1,85 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-binaries:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build release binaries
+        run: cargo build --release
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries
+          path: |
+            target/release/keystats-daemon
+            target/release/keystatsctl
+
+  build-extension:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y gettext
+      - name: Build extension zip
+        run: make zip
+      - name: Upload extension
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension
+          path: gnome-extension/keystats@0x5c0f.github.io.zip
+
+  release:
+    needs: [build-binaries, build-extension]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Determine release type
+        id: type
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          if echo "$TAG" | grep -qE 'rc\.[0-9]+$'; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Prepare release assets
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          DIST_NAME="keystats-${TAG#v}-linux-x86_64"
+          mkdir -p "${DIST_NAME}/bin" "${DIST_NAME}/systemd" "${DIST_NAME}/udev"
+          cp artifacts/binaries/keystats-daemon "${DIST_NAME}/bin/"
+          cp artifacts/binaries/keystatsctl "${DIST_NAME}/bin/"
+          cp packaging/systemd/keystats.service "${DIST_NAME}/systemd/"
+          cp packaging/udev/60-keystats-input.rules "${DIST_NAME}/udev/"
+          cp packaging/dist/Makefile "${DIST_NAME}/"
+          cp packaging/dist/README.md "${DIST_NAME}/"
+          cp packaging/dist/README.zh-CN.md "${DIST_NAME}/"
+          tar -czf "${DIST_NAME}.tar.gz" "${DIST_NAME}"
+          echo "DIST_ASSET=${DIST_NAME}.tar.gz" >> "$GITHUB_ENV"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: KeyStats ${{ github.ref_name }}
+          prerelease: ${{ steps.type.outputs.prerelease }}
+          generate_release_notes: true
+          files: |
+            ${{ env.DIST_ASSET }}
+            artifacts/extension/keystats@0x5c0f.github.io.zip
