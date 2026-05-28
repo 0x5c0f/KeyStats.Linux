@@ -88,22 +88,15 @@ export default class KeyStatsPreferences extends ExtensionPreferences {
         });
 
         /* ── Appearance ─────────────────────────────── */
-
-        const appearGroup = new Adw.PreferencesGroup({
-            title: _('Appearance'),
-        });
-        page.add(appearGroup);
-
-        // Dynamic color
-        // TODO: implement in a future release — should read the GSettings
-        // value and apply the system accent color to chart highlights, KPS
-        // badge, and hero value text in the popup via St dynamic theming.
-        const colorRow = new Adw.SwitchRow({
-            title: _('Dynamic Accent Color'),
-            subtitle: _('Use system accent color for highlights'),
-        });
-        appearGroup.add(colorRow);
-        s.bind('dynamic-color', colorRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+        // Hidden until Dynamic Accent Color is implemented.
+        // const appearGroup = new Adw.PreferencesGroup({ title: _('Appearance') });
+        // page.add(appearGroup);
+        // const colorRow = new Adw.SwitchRow({
+        //     title: _('Dynamic Accent Color'),
+        //     subtitle: _('Use system accent color for highlights'),
+        // });
+        // appearGroup.add(colorRow);
+        // s.bind('dynamic-color', colorRow, 'active', Gio.SettingsBindFlags.DEFAULT);
 
         /* ── Data Management ────────────────────────── */
 
