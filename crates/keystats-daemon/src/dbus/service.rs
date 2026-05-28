@@ -26,7 +26,7 @@ impl KeyStatsService {
             let connection = Connection::session().expect("Failed to connect to session D-Bus");
 
             connection
-                .request_name("io.github.0x5c0f.KeyStats")
+                .request_name("io.github.x0x5c0f.KeyStats")
                 .expect("Failed to register D-Bus service name");
 
             connection
@@ -34,7 +34,7 @@ impl KeyStatsService {
                 .at("/io/github/0x5c0f/KeyStats", service)
                 .expect("Failed to register D-Bus object");
 
-            tracing::info!("D-Bus service registered: io.github.0x5c0f.KeyStats");
+            tracing::info!("D-Bus service registered: io.github.x0x5c0f.KeyStats");
 
             // Keep the connection alive
             std::thread::park();
@@ -42,7 +42,7 @@ impl KeyStatsService {
     }
 }
 
-#[interface(name = "io.github.0x5c0f.KeyStats1")]
+#[interface(name = "io.github.x0x5c0f.KeyStats1")]
 impl KeyStatsService {
     fn get_today_stats(&self) -> HashMap<String, zbus::zvariant::Value<'static>> {
         let mgr = self.stats.lock().unwrap();

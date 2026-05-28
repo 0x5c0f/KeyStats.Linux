@@ -8,9 +8,9 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import {Extension, gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
 
-const BUS_NAME = 'io.github.0x5c0f.KeyStats';
+const BUS_NAME = 'io.github.x0x5c0f.KeyStats';
 const OBJ_PATH = '/io/github/0x5c0f/KeyStats';
-const IFACE = 'io.github.0x5c0f.KeyStats1';
+const IFACE = 'io.github.x0x5c0f.KeyStats1';
 
 /* ── Theme detection ────────────────────────────────── */
 

@@ -50,6 +50,7 @@ Inspired by [KeyStats](https://github.com/debugtheworldbot/KeyStats) (macOS &amp
 - **GNOME Shell** 45–48
 - **input** group membership: `sudo usermod -aG input $USER` (log out/in after)
 - **gettext** (for locale compilation)
+- **glib2** (for `glib-compile-schemas`)
 
 ### Build & Install
 

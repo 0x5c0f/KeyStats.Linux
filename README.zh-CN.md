@@ -50,6 +50,7 @@
 - **GNOME Shell** 45–48
 - **input** 用户组权限：`sudo usermod -aG input $USER`（执行后重新登录）
 - **gettext**（用于语言包编译）
+- **glib2**（用于 `glib-compile-schemas`）
 
 ### 构建和安装
 

@@ -64,6 +64,7 @@ install: mo
 	cp metadata.json extension.js prefs.js stylesheet.css $(INSTALL_DIR)/
 	cp -r schemas $(INSTALL_DIR)/
 	cp -r locale $(INSTALL_DIR)/
+	glib-compile-schemas $(INSTALL_DIR)/schemas/
 	@echo "Installed extension to $(INSTALL_DIR)"
 
 clean:

@@ -1,0 +1,7 @@
+# Rust
+/target/
+**/*.rs.bk
+
+# GNOME extension (generated)
+gnome-extension/locale/
+gnome-extension/*.zip

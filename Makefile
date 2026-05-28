@@ -26,7 +26,7 @@ build-locale:
 # ── Install ────────────────────────────────────────────
 
 install: install-daemon install-systemd install-extension
-	@echo "Install complete. Restart GNOME Shell and run:"
+	@echo "Install complete. Reload GNOME Shell (Alt+F2 → r on X11, or log out/in on Wayland), then run:"
 	@echo "  systemctl --user enable --now keystats"
 	@echo "  gnome-extensions enable keystats@0x5c0f.github.io"
 
@@ -48,6 +48,7 @@ install-extension: build-locale
 	cp gnome-extension/stylesheet.css $(EXT_DIR)/
 	cp -r gnome-extension/schemas $(EXT_DIR)/
 	cp -r gnome-extension/locale $(EXT_DIR)/
+	glib-compile-schemas $(EXT_DIR)/schemas/
 
 # ── Package ────────────────────────────────────────────
 
