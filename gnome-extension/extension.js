@@ -354,6 +354,20 @@ export default class KeyStatsExtension extends Extension {
             this._themeSignal = null;
         }
         if (this._timeoutId) { GLib.Source.remove(this._timeoutId); this._timeoutId = null; }
+        this._keyLabel?.destroy(); this._keyLabel = null;
+        this._clickLabel?.destroy(); this._clickLabel = null;
+        this._header?.destroy(); this._header = null;
+        this._connDot?.destroy(); this._connDot = null;
+        this._kpsLbl?.destroy(); this._kpsLbl = null;
+        this._kpsBadge?.destroy(); this._kpsBadge = null;
+        this._hero?.destroy(); this._hero = null;
+        this._clickRow?.destroy(); this._clickRow = null;
+        this._sideRow?.destroy(); this._sideRow = null;
+        this._distRow?.destroy(); this._distRow = null;
+        this._keySection?.destroy(); this._keySection = null;
+        this._histBox?.destroy(); this._histBox = null;
+        this._actions?.destroy(); this._actions = null;
+        this._popupBox = null;
         if (this._button) { this._button.destroy(); this._button = null; }
         this._settings = null;
         console.log('[KeyStats] disabled');
