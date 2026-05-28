@@ -6,6 +6,10 @@
 
 受 [KeyStats](https://github.com/debugtheworldbot/KeyStats)（macOS &amp; Windows）启发，这是一个独立的 Linux 实现的键盘和鼠标输入统计工具。
 
+<p align="center">
+  <img src="docs/images/example_zh.png" alt="KeyStats" />
+</p>
+
 ## 架构
 
 ```

@@ -6,6 +6,10 @@ Privacy-first keyboard and mouse statistics for Linux — a GNOME Shell integrat
 
 Inspired by [KeyStats](https://github.com/debugtheworldbot/KeyStats) (macOS &amp; Windows), this is an independent Linux implementation that tracks keyboard and mouse input statistics.
 
+<p align="center">
+  <img src="docs/images/example_en.png" alt="KeyStats" />
+</p>
+
 ## Architecture
 
 ```
