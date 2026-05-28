@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.keystats"
+          path="/org/gnome/shell/extensions/keystats/">
+    <key name="show-keys" type="b">
+      <default>true</default>
+      <summary>Show key press count in panel</summary>
+    </key>
+    <key name="show-clicks" type="b">
+      <default>true</default>
+      <summary>Show click count in panel</summary>
+    </key>
+    <key name="refresh-interval" type="i">
+      <default>1000</default>
+      <summary>Refresh interval in milliseconds</summary>
+    </key>
+    <!-- TODO: future feature — read this in extension.js and apply
+         system accent color to chart highlights, KPS badge, and hero values -->
+    <key name="dynamic-color" type="b">
+      <default>false</default>
+      <summary>Use dynamic accent color</summary>
+    </key>
+  </schema>
+</schemalist>

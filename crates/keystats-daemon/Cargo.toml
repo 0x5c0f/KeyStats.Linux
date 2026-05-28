@@ -1,0 +1,17 @@
+[package]
+name = "keystats-daemon"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+keystats-core = { path = "../keystats-core" }
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+thiserror.workspace = true
+zbus = "5"
+evdev = "0.13"
+rusqlite = { version = "0.32", features = ["bundled"] }

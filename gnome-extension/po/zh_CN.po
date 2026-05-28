@@ -1,0 +1,214 @@
+# KeyStats GNOME Shell Extension Simplified Chinese Translation
+# Copyright (C) KeyStats Contributors
+# This file is distributed under the same license as the KeyStats extension.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: keystats 1\n"
+"Report-Msgid-Bugs-To: https://github.com/0x5c0f/KeyStats.Linux/issues\n"
+"POT-Creation-Date: 2026-05-27 18:01+0800\n"
+"PO-Revision-Date: 2026-05-27 00:00+0000\n"
+"Last-Translator: KeyStats Contributors\n"
+"Language-Team: Chinese (Simplified)\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: extension.js:159
+msgid "Mouse Click Detail"
+msgstr "鼠标点击详情"
+
+#: extension.js:166
+msgid "Distance"
+msgstr "移动距离"
+
+#: extension.js:171
+msgid "Key Breakdown"
+msgstr "按键详情"
+
+#: extension.js:176
+msgid "History (7 days)"
+msgstr "历史记录（7 天）"
+
+#: extension.js:184
+msgid "Preferences"
+msgstr "偏好设置"
+
+#: extension.js:218 extension.js:220 extension.js:246
+msgid "K"
+msgstr "K"
+
+#: extension.js:219 extension.js:220 extension.js:247
+msgid "C"
+msgstr "C"
+
+#: extension.js:220
+msgid "/s"
+msgstr "/s"
+
+#: extension.js:226
+msgid "Key Presses"
+msgstr "按键次数"
+
+#: extension.js:227
+msgid "Mouse Clicks"
+msgstr "鼠标点击"
+
+#: extension.js:230
+msgid "Left"
+msgstr "左键"
+
+#: extension.js:231
+msgid "Middle"
+msgstr "中键"
+
+#: extension.js:232
+msgid "Right"
+msgstr "右键"
+
+#: extension.js:235
+msgid "Side Back"
+msgstr "侧后键"
+
+#: extension.js:236
+msgid "Side Fwd"
+msgstr "侧前键"
+
+#: extension.js:240
+msgid "Mouse Dist"
+msgstr "鼠标距离"
+
+#: extension.js:241
+msgid "Scroll Dist"
+msgstr "滚动距离"
+
+#: extension.js:248
+msgid "offline"
+msgstr "离线"
+
+#: extension.js:268
+msgid "No keys recorded yet"
+msgstr "暂无按键记录"
+
+#: extension.js:323
+msgid "No history yet"
+msgstr "暂无历史记录"
+
+#: prefs.js:26
+msgid "Error"
+msgstr "错误"
+
+#: prefs.js:27
+msgid ""
+"Could not reach the KeyStats daemon.\n"
+"Is it running? Try: keystatsctl status"
+msgstr ""
+"无法连接到 KeyStats 守护进程。\n"
+"是否正在运行？请尝试：keystatsctl status"
+
+#: prefs.js:31
+msgid "OK"
+msgstr "确定"
+
+#: prefs.js:42
+msgid "KeyStats"
+msgstr "KeyStats"
+
+#: prefs.js:50
+msgid "Panel Display"
+msgstr "面板显示"
+
+#: prefs.js:51
+msgid "Choose what appears in the top bar."
+msgstr "选择顶部栏显示的内容。"
+
+#: prefs.js:56
+msgid "Show Key Presses"
+msgstr "显示按键次数"
+
+#: prefs.js:57
+msgid "Display key press count in the top bar panel"
+msgstr "在顶部栏面板显示按键计数"
+
+#: prefs.js:63
+msgid "Show Click Count"
+msgstr "显示点击次数"
+
+#: prefs.js:64
+msgid "Display mouse click count in the top bar panel"
+msgstr "在顶部栏面板显示鼠标点击计数"
+
+#: prefs.js:72
+msgid "Refresh"
+msgstr "刷新"
+
+#: prefs.js:73
+msgid "How often to poll the daemon for new data."
+msgstr "从守护进程获取新数据的频率。"
+
+#: prefs.js:78
+msgid "Refresh Interval"
+msgstr "刷新间隔"
+
+#: prefs.js:79
+msgid "Milliseconds between data updates"
+msgstr "数据更新间隔（毫秒）"
+
+#: prefs.js:93
+msgid "Appearance"
+msgstr "外观"
+
+#: prefs.js:102
+msgid "Dynamic Accent Color"
+msgstr "动态强调色"
+
+#: prefs.js:103
+msgid "Use system accent color for highlights"
+msgstr "使用系统强调色作为高亮色"
+
+#: prefs.js:111
+msgid "Data Management"
+msgstr "数据管理"
+
+#: prefs.js:112
+msgid "Reset or clear your collected statistics."
+msgstr "重置或清除已收集的统计数据。"
+
+#: prefs.js:118
+msgid "Reset Today"
+msgstr "重置今日"
+
+#: prefs.js:119
+msgid "Clear only today's counts — history is preserved"
+msgstr "仅清除今日计数——历史记录保留"
+
+#: prefs.js:122
+msgid "Reset"
+msgstr "重置"
+
+#: prefs.js:134
+msgid "Clear All Data"
+msgstr "清除所有数据"
+
+#: prefs.js:135
+msgid "Permanently delete today and all history"
+msgstr "永久删除今日及所有历史记录"
+
+#: prefs.js:138 prefs.js:151
+msgid "Clear All"
+msgstr "全部清除"
+
+#: prefs.js:145
+msgid "Clear All Data?"
+msgstr "清除所有数据？"
+
+#: prefs.js:146
+msgid ""
+"This will permanently delete today's statistics and all history. This action "
+"cannot be undone."
+msgstr "这将永久删除今日的统计数据和所有历史记录。此操作无法撤销。"
+
+#: prefs.js:150
+msgid "Cancel"
+msgstr "取消"

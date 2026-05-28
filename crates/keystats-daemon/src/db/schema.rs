@@ -1,0 +1,310 @@
+use rusqlite::Connection;
+
+const SCHEMA_VERSION: i32 = 2;
+
+pub fn migrate(conn: &Connection) -> Result<(), rusqlite::Error> {
+    let version: i32 = conn
+        .pragma_query_value(None, "user_version", |row| row.get(0))
+        .unwrap_or(0);
+
+    if version < 1 {
+        conn.execute_batch(
+            "
+            CREATE TABLE IF NOT EXISTS daily_stats (
+                date TEXT PRIMARY KEY,
+                key_presses INTEGER NOT NULL DEFAULT 0,
+                left_clicks INTEGER NOT NULL DEFAULT 0,
+                middle_clicks INTEGER NOT NULL DEFAULT 0,
+                right_clicks INTEGER NOT NULL DEFAULT 0,
+                side_back_clicks INTEGER NOT NULL DEFAULT 0,
+                side_forward_clicks INTEGER NOT NULL DEFAULT 0,
+                mouse_distance REAL NOT NULL DEFAULT 0,
+                scroll_distance REAL NOT NULL DEFAULT 0,
+                peak_kps INTEGER NOT NULL DEFAULT 0,
+                peak_cps INTEGER NOT NULL DEFAULT 0,
+                updated_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS key_counts (
+                date TEXT NOT NULL,
+                key_name TEXT NOT NULL,
+                count INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (date, key_name)
+            );
+
+            CREATE TABLE IF NOT EXISTS metadata (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL
+            );
+            ",
+        )?;
+        conn.pragma_update(None, "user_version", SCHEMA_VERSION)?;
+    }
+
+    if version < 2 {
+        conn.execute_batch(
+            "ALTER TABLE daily_stats ADD COLUMN middle_clicks INTEGER NOT NULL DEFAULT 0;",
+        )
+        .ok();
+        conn.pragma_update(None, "user_version", SCHEMA_VERSION)?;
+    }
+
+    Ok(())
+}
+
+pub fn upsert_daily_stats(
+    conn: &Connection,
+    stats: &keystats_core::DailyStats,
+) -> Result<(), rusqlite::Error> {
+    conn.execute(
+        "INSERT INTO daily_stats (date, key_presses, left_clicks, middle_clicks, right_clicks,
+         side_back_clicks, side_forward_clicks, mouse_distance, scroll_distance,
+         peak_kps, peak_cps, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, datetime('now'))
+         ON CONFLICT(date) DO UPDATE SET
+         key_presses = excluded.key_presses,
+         left_clicks = excluded.left_clicks,
+         middle_clicks = excluded.middle_clicks,
+         right_clicks = excluded.right_clicks,
+         side_back_clicks = excluded.side_back_clicks,
+         side_forward_clicks = excluded.side_forward_clicks,
+         mouse_distance = excluded.mouse_distance,
+         scroll_distance = excluded.scroll_distance,
+         peak_kps = MAX(peak_kps, excluded.peak_kps),
+         peak_cps = MAX(peak_cps, excluded.peak_cps),
+         updated_at = datetime('now')",
+        rusqlite::params![
+            stats.date,
+            stats.key_presses,
+            stats.left_clicks,
+            stats.middle_clicks,
+            stats.right_clicks,
+            stats.side_back_clicks,
+            stats.side_forward_clicks,
+            stats.mouse_distance,
+            stats.scroll_distance,
+            stats.peak_kps,
+            stats.peak_cps,
+        ],
+    )?;
+    Ok(())
+}
+
+pub fn load_daily_stats(
+    conn: &Connection,
+    date: &str,
+) -> Result<Option<keystats_core::DailyStats>, rusqlite::Error> {
+    let mut stmt = conn.prepare(
+        "SELECT date, key_presses, left_clicks, middle_clicks, right_clicks,
+         side_back_clicks, side_forward_clicks, mouse_distance, scroll_distance,
+         peak_kps, peak_cps, updated_at
+         FROM daily_stats WHERE date = ?1",
+    )?;
+    let result = stmt.query_row(rusqlite::params![date], |row| {
+        Ok(keystats_core::DailyStats {
+            date: row.get(0)?,
+            key_presses: row.get(1)?,
+            left_clicks: row.get(2)?,
+            middle_clicks: row.get(3)?,
+            right_clicks: row.get(4)?,
+            side_back_clicks: row.get(5)?,
+            side_forward_clicks: row.get(6)?,
+            mouse_distance: row.get(7)?,
+            scroll_distance: row.get(8)?,
+            current_kps: 0,
+            current_cps: 0,
+            peak_kps: row.get(9)?,
+            peak_cps: row.get(10)?,
+            updated_at: row.get(11)?,
+        })
+    });
+    match result {
+        Ok(stats) => Ok(Some(stats)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(e) => Err(e),
+    }
+}
+
+#[allow(dead_code)]
+pub fn load_history(
+    conn: &Connection,
+    days: u32,
+) -> Result<Vec<keystats_core::DailyStats>, rusqlite::Error> {
+    let mut stmt = conn.prepare(
+        "SELECT date, key_presses, left_clicks, middle_clicks, right_clicks,
+         side_back_clicks, side_forward_clicks, mouse_distance, scroll_distance,
+         peak_kps, peak_cps, updated_at
+         FROM daily_stats ORDER BY date DESC LIMIT ?1",
+    )?;
+    let rows = stmt.query_map(rusqlite::params![days], |row| {
+        Ok(keystats_core::DailyStats {
+            date: row.get(0)?,
+            key_presses: row.get(1)?,
+            left_clicks: row.get(2)?,
+            middle_clicks: row.get(3)?,
+            right_clicks: row.get(4)?,
+            side_back_clicks: row.get(5)?,
+            side_forward_clicks: row.get(6)?,
+            mouse_distance: row.get(7)?,
+            scroll_distance: row.get(8)?,
+            current_kps: 0,
+            current_cps: 0,
+            peak_kps: row.get(9)?,
+            peak_cps: row.get(10)?,
+            updated_at: row.get(11)?,
+        })
+    })?;
+    rows.collect()
+}
+
+pub fn incr_key_count(conn: &Connection, date: &str, key_name: &str) -> Result<(), rusqlite::Error> {
+    conn.execute(
+        "INSERT INTO key_counts (date, key_name, count) VALUES (?1, ?2, 1)
+         ON CONFLICT(date, key_name) DO UPDATE SET count = count + 1",
+        rusqlite::params![date, key_name],
+    )?;
+    Ok(())
+}
+
+pub fn top_keys(
+    conn: &Connection,
+    date: &str,
+    limit: u32,
+) -> Result<Vec<keystats_core::KeyCount>, rusqlite::Error> {
+    let mut stmt = conn.prepare(
+        "SELECT key_name, count FROM key_counts
+         WHERE date = ?1 ORDER BY count DESC LIMIT ?2",
+    )?;
+    let rows = stmt.query_map(rusqlite::params![date, limit], |row| {
+        Ok(keystats_core::KeyCount {
+            key_name: row.get(0)?,
+            count: row.get(1)?,
+        })
+    })?;
+    rows.collect()
+}
+
+pub fn delete_today_key_counts(conn: &Connection, date: &str) -> Result<(), rusqlite::Error> {
+    conn.execute("DELETE FROM key_counts WHERE date = ?1", rusqlite::params![date])?;
+    Ok(())
+}
+
+pub fn delete_all(conn: &Connection) -> Result<(), rusqlite::Error> {
+    conn.execute_batch("DELETE FROM daily_stats; DELETE FROM key_counts;")?;
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn migration_creates_tables() {
+        let conn = Connection::open_in_memory().unwrap();
+        migrate(&conn).unwrap();
+        // Verify tables exist
+        let c: i64 = conn
+            .query_row("SELECT COUNT(*) FROM daily_stats", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(c, 0);
+        conn.query_row("SELECT COUNT(*) FROM key_counts", [], |r| {
+            r.get::<_, i64>(0)
+        })
+        .unwrap();
+        conn.query_row("SELECT COUNT(*) FROM metadata", [], |r| r.get::<_, i64>(0))
+            .unwrap();
+    }
+
+    #[test]
+    fn upsert_and_load() {
+        let conn = Connection::open_in_memory().unwrap();
+        migrate(&conn).unwrap();
+
+        let s = keystats_core::DailyStats {
+            date: "2026-05-26".into(),
+            key_presses: 100,
+            left_clicks: 10,
+            right_clicks: 5,
+            side_back_clicks: 2,
+            side_forward_clicks: 1,
+            mouse_distance: 128.5,
+            scroll_distance: 42.0,
+            peak_kps: 10,
+            peak_cps: 5,
+            ..Default::default()
+        };
+        upsert_daily_stats(&conn, &s).unwrap();
+
+        let loaded = load_daily_stats(&conn, "2026-05-26").unwrap().unwrap();
+        assert_eq!(loaded.key_presses, 100);
+        assert_eq!(loaded.left_clicks, 10);
+        assert_eq!(loaded.right_clicks, 5);
+        assert_eq!(loaded.mouse_distance, 128.5);
+        assert_eq!(loaded.peak_kps, 10);
+    }
+
+    #[test]
+    fn upsert_updates_existing() {
+        let conn = Connection::open_in_memory().unwrap();
+        migrate(&conn).unwrap();
+
+        let s1 = keystats_core::DailyStats {
+            date: "2026-05-26".into(),
+            key_presses: 100,
+            left_clicks: 10,
+            right_clicks: 5,
+            mouse_distance: 50.0,
+            scroll_distance: 10.0,
+            peak_kps: 5,
+            peak_cps: 3,
+            ..Default::default()
+        };
+        upsert_daily_stats(&conn, &s1).unwrap();
+        let s2 = keystats_core::DailyStats {
+            date: "2026-05-26".into(),
+            key_presses: 200,
+            left_clicks: 20,
+            right_clicks: 10,
+            mouse_distance: 100.0,
+            scroll_distance: 20.0,
+            peak_kps: 8,
+            peak_cps: 4,
+            ..Default::default()
+        };
+        upsert_daily_stats(&conn, &s2).unwrap();
+
+        let loaded = load_daily_stats(&conn, "2026-05-26").unwrap().unwrap();
+        assert_eq!(loaded.key_presses, 200);
+        // peak_kps should be MAX of both values
+        assert_eq!(loaded.peak_kps, 8);
+    }
+
+    #[test]
+    fn load_nonexistent_returns_none() {
+        let conn = Connection::open_in_memory().unwrap();
+        migrate(&conn).unwrap();
+        let result = load_daily_stats(&conn, "2026-01-01").unwrap();
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn history_respects_limit() {
+        let conn = Connection::open_in_memory().unwrap();
+        migrate(&conn).unwrap();
+
+        for day in 1..=5 {
+            let date = format!("2026-05-{:02}", day);
+            let s = keystats_core::DailyStats {
+                date,
+                key_presses: day * 10,
+                ..Default::default()
+            };
+            upsert_daily_stats(&conn, &s).unwrap();
+        }
+
+        let history = load_history(&conn, 3).unwrap();
+        assert_eq!(history.len(), 3);
+        // Most recent first
+        assert_eq!(history[0].key_presses, 50);
+    }
+}

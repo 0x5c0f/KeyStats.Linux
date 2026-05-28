@@ -1,0 +1,16 @@
+# KeyStats — optional udev rule for input device access
+#
+# Most users can skip this rule if they are in the 'input' group.
+# This rule grants read-only access to the 'keystats' group as an alternative.
+#
+# Security note: this rule grants READ access to /dev/input/event*
+# for all members of the 'keystats' group. KeyStats does NOT log
+# input content — only aggregate counts and distances.
+#
+# Install: sudo cp this file to /etc/udev/rules.d/
+# Then:    sudo groupadd --system keystats
+#          sudo usermod -aG keystats $USER
+#          sudo udevadm control --reload-rules
+#          sudo udevadm trigger
+
+SUBSYSTEM=="input", KERNEL=="event*", GROUP="keystats", MODE="0640"

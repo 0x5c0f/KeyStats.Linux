@@ -1,0 +1,239 @@
+/* ================================================================
+   KeyStats GNOME Extension — Dual-theme styles (dark + light)
+   Matching macOS/Windows card-based dashboard design
+   ================================================================ */
+
+/* ── Popup itself ─────────────────────────────────── */
+.ks-popup {
+    width: 340px;
+    padding: 14px 16px 10px 16px;
+    spacing: 0;
+}
+
+/* ── Panel button ─────────────────────────────────── */
+.ks-panel-box { spacing: 3px; }
+.ks-panel-label { font-size: 10px; font-weight: 700; padding: 0 2px; }
+
+/* ── Section headers ──────────────────────────────── */
+.ks-section {
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.3px;
+    margin-top: 12px; margin-bottom: 6px;
+}
+
+/* ── Hero cards ───────────────────────────────────── */
+.ks-hero-row { spacing: 6px; margin-top: 6px; }
+.ks-hero { border-radius: 8px; padding: 12px 14px; }
+.ks-hero-title { font-size: 10px; font-weight: 500; margin-bottom: 4px; }
+.ks-hero-value { font-size: 22px; font-weight: 700; }
+
+/* ── Click tiles ──────────────────────────────────── */
+.ks-click-row { spacing: 6px; margin-top: 4px; }
+.ks-click-tile { border-radius: 7px; padding: 10px 8px; }
+.ks-click-label { font-size: 10px; font-weight: 500; margin-bottom: 2px; }
+.ks-click-value { font-size: 18px; font-weight: 700; }
+
+/* ── Distance cards ───────────────────────────────── */
+.ks-dist-row { spacing: 6px; margin-top: 4px; }
+.ks-dist { border-radius: 8px; padding: 12px 14px; }
+.ks-dist-title { font-size: 10px; font-weight: 500; margin-bottom: 2px; }
+.ks-dist-value { font-size: 18px; font-weight: 700; }
+
+/* ── Key Breakdown grid ──────────────────────────── */
+.ks-key-grid { margin-top: 4px; }
+.ks-key-grid-row { spacing: 0; }
+.ks-key-col {
+    spacing: 4px;
+    padding: 0 10px;
+}
+.ks-key-col-sep {
+    width: 1px;
+    margin: 4px 6px;
+}
+.ks-key-row-item {
+    spacing: 8px;
+    padding: 2px 0;
+}
+.ks-key-badge {
+    font-size: 12px; font-weight: 500;
+    border-radius: 4px;
+    padding: 4px 8px;
+    min-width: 28px;
+}
+.ks-key-badge-count {
+    font-size: 12px; font-weight: 700;
+    padding-top: 2px;
+}
+
+/* ── Dim text ─────────────────────────────────────── */
+.ks-dim { font-size: 10px; padding: 4px 0; }
+
+/* ── Connection dot ──────────────────────────────── */
+.ks-conn-dot {
+    width: 8px; height: 8px;
+    border-radius: 4px;
+    margin-left: 6px;
+}
+.ks-conn-ok { background-color: #34c759; }
+.ks-conn-err { background-color: #ff3b30; }
+
+/* ── KPS badge ────────────────────────────────────── */
+.ks-kps { border-radius: 10px; padding: 3px 8px; }
+.ks-kps-text { font-size: 9px; font-weight: 600; }
+
+/* ── Separator ────────────────────────────────────── */
+.ks-sep { height: 1px; margin: 12px 0 8px 0; }
+
+/* ── Actions ──────────────────────────────────────── */
+.ks-actions { spacing: 8px; margin-top: 4px; }
+.ks-btn { border-radius: 5px; padding: 6px 14px; font-size: 11px; font-weight: 500; }
+
+/* ── History ──────────────────────────────────────── */
+.ks-hist-wrap { border-radius: 8px; padding: 10px 12px; margin-top: 4px; }
+.ks-hist-bars { spacing: 3px; }
+.ks-hist-date { font-size: 9px; margin-bottom: 4px; }
+.ks-hist-label { font-size: 10px; font-weight: 700; margin-top: 3px; }
+
+
+/* ══════════════════════════════════════════════════════════
+   DARK THEME
+   ══════════════════════════════════════════════════════════ */
+
+.ks-dark.ks-popup {
+    background-color: #1e1e1e;
+    color: #ffffff;
+}
+
+/* Section */
+.ks-dark .ks-section { color: #8a8a8a; }
+
+/* Hero */
+.ks-dark .ks-hero {
+    background-color: #2a2a2a;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.ks-dark .ks-hero-title { color: #c5c5c5; }
+.ks-dark .ks-hero-value { color: #ffffff; }
+
+/* Click tiles */
+.ks-dark .ks-click-tile {
+    background-color: #2a2a2a;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.ks-dark .ks-click-label { color: #c5c5c5; }
+.ks-dark .ks-click-value { color: #ffffff; }
+
+/* Distance */
+.ks-dark .ks-dist {
+    background-color: #2a2a2a;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.ks-dark .ks-dist-title { color: #c5c5c5; }
+.ks-dark .ks-dist-value { color: #ffffff; }
+
+/* Dim */
+.ks-dark .ks-dim { color: #8a8a8a; }
+
+/* KPS badge */
+.ks-dark .ks-kps { background-color: rgba(255, 159, 10, 0.12); }
+.ks-dark .ks-kps-bolt { color: #ffa726; }
+.ks-dark .ks-kps-text { color: #ffa726; }
+
+/* Separator */
+.ks-dark .ks-sep { background-color: rgba(255, 255, 255, 0.08); }
+
+/* Key badges */
+.ks-dark .ks-key-badge { background-color: rgba(255, 255, 255, 0.1); color: #ffffff; }
+.ks-dark .ks-key-badge-count { color: #8a8a8a; }
+.ks-dark .ks-key-col-sep { background-color: rgba(255, 255, 255, 0.06); }
+
+/* Buttons */
+.ks-dark .ks-btn {
+    background-color: #2a2a2a;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #c5c5c5;
+}
+.ks-dark .ks-btn:hover {
+    background-color: #353535;
+    color: #ffffff;
+}
+
+/* History */
+.ks-dark .ks-hist-wrap {
+    background-color: #2a2a2a;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.ks-dark .ks-hist-date { color: #8a8a8a; }
+.ks-dark .ks-hist-label { color: #c5c5c5; }
+
+
+/* ══════════════════════════════════════════════════════════
+   LIGHT THEME
+   ══════════════════════════════════════════════════════════ */
+
+.ks-light.ks-popup {
+    background-color: #fafafa;
+    color: #1a1a1a;
+}
+
+/* Section */
+.ks-light .ks-section { color: #8a8a8a; }
+
+/* Hero */
+.ks-light .ks-hero {
+    background-color: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+.ks-light .ks-hero-title { color: #5c5c5c; }
+.ks-light .ks-hero-value { color: #1a1a1a; }
+
+/* Click tiles */
+.ks-light .ks-click-tile {
+    background-color: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+.ks-light .ks-click-label { color: #5c5c5c; }
+.ks-light .ks-click-value { color: #1a1a1a; }
+
+/* Distance */
+.ks-light .ks-dist {
+    background-color: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+.ks-light .ks-dist-title { color: #5c5c5c; }
+.ks-light .ks-dist-value { color: #1a1a1a; }
+
+/* Dim */
+.ks-light .ks-dim { color: #8a8a8a; }
+
+/* KPS badge */
+.ks-light .ks-kps { background-color: rgba(230, 130, 0, 0.1); }
+.ks-light .ks-kps-bolt { color: #cc7a00; }
+.ks-light .ks-kps-text { color: #cc7a00; }
+
+/* Separator */
+.ks-light .ks-sep { background-color: rgba(0, 0, 0, 0.08); }
+
+/* Key badges */
+.ks-light .ks-key-badge { background-color: rgba(0, 0, 0, 0.05); color: #1a1a1a; }
+.ks-light .ks-key-badge-count { color: #8a8a8a; }
+.ks-light .ks-key-col-sep { background-color: rgba(0, 0, 0, 0.06); }
+
+/* Buttons */
+.ks-light .ks-btn {
+    background-color: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    color: #5c5c5c;
+}
+.ks-light .ks-btn:hover {
+    background-color: #eeeeee;
+    color: #1a1a1a;
+}
+
+/* History */
+.ks-light .ks-hist-wrap {
+    background-color: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+.ks-light .ks-hist-date { color: #8a8a8a; }
+.ks-light .ks-hist-label { color: #5c5c5c; }

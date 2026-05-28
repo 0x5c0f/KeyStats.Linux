@@ -1,0 +1,214 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR KeyStats Contributors
+# This file is distributed under the same license as the keystats package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: keystats 1\n"
+"Report-Msgid-Bugs-To: https://github.com/0x5c0f/KeyStats.Linux/issues\n"
+"POT-Creation-Date: 2026-05-27 18:01+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: extension.js:159
+msgid "Mouse Click Detail"
+msgstr ""
+
+#: extension.js:166
+msgid "Distance"
+msgstr ""
+
+#: extension.js:171
+msgid "Key Breakdown"
+msgstr ""
+
+#: extension.js:176
+msgid "History (7 days)"
+msgstr ""
+
+#: extension.js:184
+msgid "Preferences"
+msgstr ""
+
+#: extension.js:218 extension.js:220 extension.js:246
+msgid "K"
+msgstr ""
+
+#: extension.js:219 extension.js:220 extension.js:247
+msgid "C"
+msgstr ""
+
+#: extension.js:220
+msgid "/s"
+msgstr ""
+
+#: extension.js:226
+msgid "Key Presses"
+msgstr ""
+
+#: extension.js:227
+msgid "Mouse Clicks"
+msgstr ""
+
+#: extension.js:230
+msgid "Left"
+msgstr ""
+
+#: extension.js:231
+msgid "Middle"
+msgstr ""
+
+#: extension.js:232
+msgid "Right"
+msgstr ""
+
+#: extension.js:235
+msgid "Side Back"
+msgstr ""
+
+#: extension.js:236
+msgid "Side Fwd"
+msgstr ""
+
+#: extension.js:240
+msgid "Mouse Dist"
+msgstr ""
+
+#: extension.js:241
+msgid "Scroll Dist"
+msgstr ""
+
+#: extension.js:248
+msgid "offline"
+msgstr ""
+
+#: extension.js:268
+msgid "No keys recorded yet"
+msgstr ""
+
+#: extension.js:323
+msgid "No history yet"
+msgstr ""
+
+#: prefs.js:26
+msgid "Error"
+msgstr ""
+
+#: prefs.js:27
+msgid ""
+"Could not reach the KeyStats daemon.\n"
+"Is it running? Try: keystatsctl status"
+msgstr ""
+
+#: prefs.js:31
+msgid "OK"
+msgstr ""
+
+#: prefs.js:42
+msgid "KeyStats"
+msgstr ""
+
+#: prefs.js:50
+msgid "Panel Display"
+msgstr ""
+
+#: prefs.js:51
+msgid "Choose what appears in the top bar."
+msgstr ""
+
+#: prefs.js:56
+msgid "Show Key Presses"
+msgstr ""
+
+#: prefs.js:57
+msgid "Display key press count in the top bar panel"
+msgstr ""
+
+#: prefs.js:63
+msgid "Show Click Count"
+msgstr ""
+
+#: prefs.js:64
+msgid "Display mouse click count in the top bar panel"
+msgstr ""
+
+#: prefs.js:72
+msgid "Refresh"
+msgstr ""
+
+#: prefs.js:73
+msgid "How often to poll the daemon for new data."
+msgstr ""
+
+#: prefs.js:78
+msgid "Refresh Interval"
+msgstr ""
+
+#: prefs.js:79
+msgid "Milliseconds between data updates"
+msgstr ""
+
+#: prefs.js:93
+msgid "Appearance"
+msgstr ""
+
+#: prefs.js:102
+msgid "Dynamic Accent Color"
+msgstr ""
+
+#: prefs.js:103
+msgid "Use system accent color for highlights"
+msgstr ""
+
+#: prefs.js:111
+msgid "Data Management"
+msgstr ""
+
+#: prefs.js:112
+msgid "Reset or clear your collected statistics."
+msgstr ""
+
+#: prefs.js:118
+msgid "Reset Today"
+msgstr ""
+
+#: prefs.js:119
+msgid "Clear only today's counts — history is preserved"
+msgstr ""
+
+#: prefs.js:122
+msgid "Reset"
+msgstr ""
+
+#: prefs.js:134
+msgid "Clear All Data"
+msgstr ""
+
+#: prefs.js:135
+msgid "Permanently delete today and all history"
+msgstr ""
+
+#: prefs.js:138 prefs.js:151
+msgid "Clear All"
+msgstr ""
+
+#: prefs.js:145
+msgid "Clear All Data?"
+msgstr ""
+
+#: prefs.js:146
+msgid ""
+"This will permanently delete today's statistics and all history. This action "
+"cannot be undone."
+msgstr ""
+
+#: prefs.js:150
+msgid "Cancel"
+msgstr ""
