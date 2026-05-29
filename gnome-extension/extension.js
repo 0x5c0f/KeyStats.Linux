@@ -210,7 +210,7 @@ export default class KeyStatsExtension extends Extension {
         let sep = new St.BoxLayout({style_class: 'ks-sep'});
         box.add_child(sep);
         this._actions = new St.BoxLayout({style_class: 'ks-actions'});
-        let prefs = actionBtn(this.gettext('Preferences'));
+        let prefs = new St.Button({style_class: 'ks-btn', child: new St.Icon({icon_name: 'emblem-system-symbolic', icon_size: 16})});
         prefs.connect('clicked', () => {
             try {
                 Gio.DBus.session.call('org.gnome.Shell.Extensions', '/org/gnome/Shell/Extensions',
