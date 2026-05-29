@@ -27,7 +27,7 @@
                                                  │    (命令行工具)       │
                                                  │                      │
                                                  │  • status / doctor   │
-                                                 │  • 设备列表           │
+                                                 │  • history (图表)    │
                                                  └──────────────────────┘
 ```
 
@@ -41,7 +41,8 @@
 - 鼠标点击统计（左键、中键、右键、侧键）
 - 鼠标移动距离（px → 米 → 公里）和滚动距离
 - KPS/CPS 实时速率显示，含峰值追踪
-- 7 天历史记录，含每日柱状图
+- 7 天历史记录，含每日柱状图（GNOME Shell 弹出面板）
+- `keystatsctl history` — 终端柱状图，支持自定义天数范围
 - 系统主题自适应（深色/浅色）
 - 国际化支持（英文 + 简体中文）
 - 定时设备重扫描，处理 USB/蓝牙热插拔
@@ -73,6 +74,12 @@ systemctl --user enable --now keystats
 gnome-extensions enable keystats@0x5c0f.github.io
 ```
 
+安全升级（扩展运行时使用，防止 GNOME Shell 崩溃）：
+
+```bash
+make upgrade  # 停止服务 → 禁用扩展 → 安装 → 重启
+```
+
 或打包为 zip 分发：
 
 ```bash
@@ -85,6 +92,9 @@ gnome-extensions install gnome-extension/keystats@0x5c0f.github.io.zip
 ```bash
 keystatsctl status
 keystatsctl doctor
+keystatsctl history              # 7 天终端柱状图（按键 + 鼠标）
+keystatsctl history --days 30    # 最近 30 天
+keystatsctl history --keys       # 仅按键统计
 ```
 
 更多安装选项、权限排查和打包说明详见 [packaging/README.zh-CN.md](packaging/README.zh-CN.md)。
