@@ -27,7 +27,7 @@ Inspired by [KeyStats](https://github.com/debugtheworldbot/KeyStats) (macOS &amp
                                                      │    (CLI tool)        │
                                                      │                      │
                                                      │  • status / doctor   │
-                                                     │  • device list       │
+                                                     │  • history (charts)  │
                                                      └──────────────────────┘
 ```
 
@@ -41,7 +41,8 @@ Inspired by [KeyStats](https://github.com/debugtheworldbot/KeyStats) (macOS &amp
 - Mouse clicks (left, middle, right, side buttons)
 - Mouse distance (px → m → km) and scroll distance
 - KPS/CPS rate display with peak tracking
-- 7-day history with daily bar charts
+- 7-day history with daily bar charts (GNOME Shell popup)
+- `keystatsctl history` — terminal bar charts with configurable day range
 - System theme-aware (dark/light)
 - Internationalization (English + Simplified Chinese)
 - Periodic device re-scan for USB/Bluetooth hotplug
@@ -73,6 +74,12 @@ systemctl --user enable --now keystats
 gnome-extensions enable keystats@0x5c0f.github.io
 ```
 
+For safe upgrades while the extension is active (prevents GNOME Shell crash from file replacement):
+
+```bash
+make upgrade  # stops service → disables extension → installs → restarts
+```
+
 Or package the extension as zip for distribution:
 
 ```bash
@@ -85,6 +92,9 @@ gnome-extensions install gnome-extension/keystats@0x5c0f.github.io.zip
 ```bash
 keystatsctl status
 keystatsctl doctor
+keystatsctl history              # 7-day terminal chart (keys + clicks)
+keystatsctl history --days 30    # last 30 days
+keystatsctl history --keys       # key presses only
 ```
 
 For detailed installation options, permissions troubleshooting, and packaging instructions, see [packaging/README.md](packaging/README.md).

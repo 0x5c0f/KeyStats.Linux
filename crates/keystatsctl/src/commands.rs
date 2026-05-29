@@ -1,4 +1,5 @@
 use evdev::Device;
+use keystats_core::DailyStats;
 use std::collections::HashMap;
 use zbus::zvariant::Value;
 
@@ -153,5 +154,143 @@ pub fn doctor() {
     } else {
         println!("\n  Status: No input devices found.");
         println!("  Check: ls /dev/input/event*");
+    }
+}
+
+// ── History chart ──────────────────────────────────────
+
+const BLOCKS: [char; 8] = ['▏', '▎', '▍', '▌', '▋', '▊', '▉', '█'];
+
+fn terminal_width() -> usize {
+    std::env::var("COLUMNS")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(80)
+}
+
+fn fmt_num(n: u64) -> String {
+    if n >= 1_000_000 {
+        format!("{:.1}M", n as f64 / 1_000_000.0)
+    } else if n >= 1_000 {
+        format!("{:.1}K", n as f64 / 1_000.0)
+    } else {
+        format!("{}", n)
+    }
+}
+
+fn render_bar(value: u64, max_value: u64, bar_width: usize) -> String {
+    if max_value == 0 || bar_width == 0 {
+        return " ".repeat(bar_width);
+    }
+    let ratio = value as f64 / max_value as f64;
+    let total_eighths = (ratio * bar_width as f64 * 8.0).round() as usize;
+    let full_blocks = total_eighths / 8;
+    let remainder = total_eighths % 8;
+
+    let mut s = String::with_capacity(bar_width);
+    for _ in 0..full_blocks.min(bar_width) {
+        s.push('█');
+    }
+    if full_blocks < bar_width && remainder > 0 {
+        s.push(BLOCKS[remainder - 1]);
+    }
+    while s.chars().count() < bar_width {
+        s.push(' ');
+    }
+    s
+}
+
+fn render_chart(title: &str, data: &[(String, u64)]) {
+    let max_value = data.iter().map(|(_, v)| *v).max().unwrap_or(1);
+    let width = terminal_width();
+    // date(6) + gap(2) + bar + gap(1) + value(6)
+    let bar_width = width.saturating_sub(15).max(10);
+
+    println!("{}:", title);
+    for (date, value) in data {
+        let date_short = if date.len() >= 5 { &date[date.len() - 5..] } else { date };
+        let bar = render_bar(*value, max_value, bar_width);
+        let val_str = fmt_num(*value);
+        println!("{}  {} {}", date_short, bar, val_str);
+    }
+}
+
+fn fetch_history(days: u32) -> Result<Vec<DailyStats>, String> {
+    let conn = zbus::blocking::Connection::session()
+        .map_err(|e| format!("Failed to connect to D-Bus: {}", e))?;
+
+    let reply = conn
+        .call_method(
+            Some(BUS_NAME),
+            OBJ_PATH,
+            Some(IFACE),
+            "GetHistory",
+            &(days,),
+        )
+        .map_err(|e| format!("D-Bus call failed: {}", e))?;
+
+    let json: String = reply
+        .body()
+        .deserialize()
+        .map_err(|e| format!("Failed to parse response: {}", e))?;
+
+    serde_json::from_str(&json).map_err(|e| format!("Failed to parse history JSON: {}", e))
+}
+
+pub fn history(days: u32, show_keys: bool, show_clicks: bool) {
+    let data = match fetch_history(days) {
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            return;
+        }
+    };
+
+    if data.is_empty() {
+        println!("No history data available.");
+        return;
+    }
+
+    let show_mixed = !show_keys && !show_clicks;
+
+    // Summary totals
+    let total_keys: u64 = data.iter().map(|d| d.key_presses).sum();
+    let total_clicks: u64 = data.iter().map(|d| d.total_clicks()).sum();
+    let date_range = format!("{} ~ {}", data.last().unwrap().date, data.first().unwrap().date);
+
+    println!("History ({} days, {})", days, date_range);
+    if show_mixed || show_keys {
+        print!("  Keys: {}", fmt_num(total_keys));
+    }
+    if show_mixed || show_clicks {
+        if show_mixed || show_keys {
+            print!("  |  ");
+        }
+        print!("Clicks: {}", fmt_num(total_clicks));
+    }
+    println!("\n");
+
+    // Prepare key press data (newest first)
+    let mut key_data: Vec<(String, u64)> = data
+        .iter()
+        .map(|d| (d.date.clone(), d.key_presses))
+        .collect();
+    key_data.reverse();
+
+    // Prepare click data
+    let mut click_data: Vec<(String, u64)> = data
+        .iter()
+        .map(|d| (d.date.clone(), d.total_clicks()))
+        .collect();
+    click_data.reverse();
+
+    if show_mixed || show_keys {
+        render_chart("Key presses", &key_data);
+    }
+    if show_mixed {
+        println!();
+    }
+    if show_mixed || show_clicks {
+        render_chart("Mouse clicks", &click_data);
     }
 }
