@@ -7,7 +7,7 @@ use zbus::blocking::Connection;
 use zbus::interface;
 
 use crate::permissions;
-use crate::stats::manager::StatsManager;
+use crate::stats::manager::{StatsManager, lock_stats};
 
 pub struct KeyStatsService {
     stats: Arc<Mutex<StatsManager>>,
@@ -45,7 +45,7 @@ impl KeyStatsService {
 #[interface(name = "io.github.x0x5c0f.KeyStats1")]
 impl KeyStatsService {
     fn get_today_stats(&self) -> HashMap<String, zbus::zvariant::Value<'static>> {
-        let mgr = self.stats.lock().unwrap();
+        let Some(mgr) = lock_stats(&self.stats) else { return HashMap::new(); };
         let s = mgr.snapshot();
         let mut stats = HashMap::new();
         stats.insert(
@@ -106,7 +106,7 @@ impl KeyStatsService {
     }
 
     fn get_rates(&self) -> HashMap<String, zbus::zvariant::Value<'static>> {
-        let mgr = self.stats.lock().unwrap();
+        let Some(mgr) = lock_stats(&self.stats) else { return HashMap::new(); };
         let r = mgr.rates();
         let mut rates = HashMap::new();
         rates.insert(
@@ -123,7 +123,7 @@ impl KeyStatsService {
     }
 
     fn get_history(&self, days: u32) -> String {
-        let mgr = self.stats.lock().unwrap();
+        let Some(mgr) = lock_stats(&self.stats) else { return String::new(); };
         match mgr.history(days) {
             Ok(history) => serde_json::to_string(&history).unwrap_or_default(),
             Err(e) => format!(r#"{{"error":"{}"}}"#, e),
@@ -136,7 +136,7 @@ impl KeyStatsService {
     }
 
     fn get_top_keys(&self, limit: u32) -> String {
-        let mgr = self.stats.lock().unwrap();
+        let Some(mgr) = lock_stats(&self.stats) else { return String::new(); };
         match mgr.top_keys(limit) {
             Ok(keys) => serde_json::to_string(&keys).unwrap_or_default(),
             Err(e) => format!(r#"{{"error":"{}"}}"#, e),
@@ -144,19 +144,19 @@ impl KeyStatsService {
     }
 
     fn reset_today(&self) -> bool {
-        let mut mgr = self.stats.lock().unwrap();
+        let Some(mut mgr) = lock_stats(&self.stats) else { return false; };
         mgr.reset_today();
         true
     }
 
     fn clear_all_data(&self) -> bool {
-        let mut mgr = self.stats.lock().unwrap();
+        let Some(mut mgr) = lock_stats(&self.stats) else { return false; };
         mgr.clear_all_data();
         true
     }
 
     fn export_data(&self) -> String {
-        let mgr = self.stats.lock().unwrap();
+        let Some(mgr) = lock_stats(&self.stats) else { return String::new(); };
         mgr.export_data().unwrap_or_default()
     }
 
@@ -165,7 +165,7 @@ impl KeyStatsService {
             "overwrite" => ImportMode::Overwrite,
             _ => ImportMode::Merge,
         };
-        let mut mgr = self.stats.lock().unwrap();
+        let Some(mut mgr) = lock_stats(&self.stats) else { return false; };
         mgr.import_data(json, import_mode).is_ok()
     }
 

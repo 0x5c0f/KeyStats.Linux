@@ -5,7 +5,7 @@ use evdev::EventSummary;
 
 use super::device::{DeviceKind, InputDevice};
 use super::keymap;
-use crate::stats::manager::StatsManager;
+use crate::stats::manager::{StatsManager, lock_stats};
 
 /// Process a batch of events from one device, calling the appropriate
 /// StatsManager recording methods. Returns the number of events processed.
@@ -128,7 +128,7 @@ pub fn run(stats: Arc<Mutex<StatsManager>>) -> ! {
     loop {
         let mut total = 0usize;
         {
-            let mut mgr = stats.lock().unwrap();
+            let Some(mut mgr) = lock_stats(&stats) else { continue; };
             for device in &mut devices {
                 total += process_device(device, &mut mgr);
             }

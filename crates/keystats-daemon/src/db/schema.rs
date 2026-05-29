@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use rusqlite::Connection;
 
 const SCHEMA_VERSION: i32 = 2;
@@ -157,13 +158,21 @@ pub fn load_history(
     rows.collect()
 }
 
-pub fn incr_key_count(conn: &Connection, date: &str, key_name: &str) -> Result<(), rusqlite::Error> {
-    conn.execute(
-        "INSERT INTO key_counts (date, key_name, count) VALUES (?1, ?2, 1)
-         ON CONFLICT(date, key_name) DO UPDATE SET count = count + 1",
-        rusqlite::params![date, key_name],
-    )?;
-    Ok(())
+
+pub fn batch_incr_key_counts(
+    conn: &mut Connection,
+    date: &str,
+    counts: &HashMap<String, u64>,
+) -> Result<(), rusqlite::Error> {
+    let tx = conn.transaction()?;
+    for (key_name, count) in counts {
+        tx.execute(
+            "INSERT INTO key_counts (date, key_name, count) VALUES (?1, ?2, ?3)
+             ON CONFLICT(date, key_name) DO UPDATE SET count = count + ?3",
+            rusqlite::params![date, key_name, count],
+        )?;
+    }
+    tx.commit()
 }
 
 pub fn top_keys(

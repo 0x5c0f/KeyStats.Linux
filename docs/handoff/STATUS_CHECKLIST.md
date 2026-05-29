@@ -29,6 +29,25 @@
 - [x] extensions.gnome.org 提交审核（等待审核中）
 - [x] README 截图嵌入（中英文）
 
+## Daemon Performance Optimizations (2026-05-29)
+
+Branch: `fix/daemon-optimizations`
+
+### Batch Key Count Flush
+- [x] `pending_keys: HashMap<String, u64>` in StatsManager
+- [x] `record_key_press`: accumulate in memory, batch flush every 2s
+- [x] `batch_incr_key_counts`: single transaction upsert
+- [x] Tests: `flush_writes_pending_keys`, `reset_clears_pending_keys`
+
+### Lock Error Handling
+- [x] `lock_stats` helper — returns `Option<MutexGuard>` on poison
+- [x] event_loop.rs: 1 instance replaced
+- [x] dbus/service.rs: 8 instances replaced
+
+### Error Logging
+- [x] `flush_to_db`, `reset_today`, `clear_all_data`: `.ok()` → `tracing::warn!`
+- [x] Removed unused `incr_key_count` (replaced by batch version)
+
 ## Not Started
 
 - [ ] **Per-app 统计**（研究）— Wayland 限制

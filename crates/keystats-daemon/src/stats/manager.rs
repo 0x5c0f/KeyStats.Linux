@@ -15,6 +15,7 @@ pub struct StatsManager {
     last_flush: Instant,
     flush_interval: std::time::Duration,
     mouse_coalesce: (f64, f64), // pending dx, dy
+    pending_keys: std::collections::HashMap<String, u64>,
 }
 
 #[allow(dead_code)]
@@ -42,6 +43,7 @@ impl StatsManager {
             last_flush: Instant::now(),
             flush_interval: std::time::Duration::from_secs(2),
             mouse_coalesce: (0.0, 0.0),
+            pending_keys: std::collections::HashMap::new(),
         })
     }
 
@@ -72,7 +74,7 @@ impl StatsManager {
         self.kps_tracker.record();
         self.update_peaks();
         if track_breakdown {
-            db::schema::incr_key_count(&self.db, &self.today, key_name).ok();
+            *self.pending_keys.entry(key_name.to_string()).or_insert(0) += 1;
         }
         self.maybe_flush();
     }
@@ -122,7 +124,15 @@ impl StatsManager {
 
     fn flush_to_db(&mut self) {
         self.stats.updated_at = chrono::Local::now().format("%Y-%m-%dT%H:%M:%S").to_string();
-        db::schema::upsert_daily_stats(&self.db, &self.stats).ok();
+        if let Err(e) = db::schema::upsert_daily_stats(&self.db, &self.stats) {
+            tracing::warn!("Failed to flush daily stats: {}", e);
+        }
+        if !self.pending_keys.is_empty() {
+            match db::schema::batch_incr_key_counts(&mut self.db, &self.today, &self.pending_keys) {
+                Ok(()) => { self.pending_keys.clear(); }
+                Err(e) => { tracing::warn!("Failed to flush key counts: {}", e); }
+            }
+        }
     }
 
     pub fn force_flush(&mut self) {
@@ -164,6 +174,7 @@ impl StatsManager {
         match mode {
             keystats_core::ImportMode::Overwrite => {
                 self.stats = imported.today;
+                self.pending_keys.clear();
                 self.flush_to_db();
             }
             keystats_core::ImportMode::Merge => {
@@ -180,6 +191,7 @@ impl StatsManager {
                 if imported.today.peak_cps > self.stats.peak_cps {
                     self.stats.peak_cps = imported.today.peak_cps;
                 }
+                self.pending_keys.clear();
                 self.flush_to_db();
             }
         }
@@ -190,7 +202,10 @@ impl StatsManager {
         self.stats = DailyStats::today();
         self.kps_tracker = RateTracker::new();
         self.cps_tracker = RateTracker::new();
-        db::schema::delete_today_key_counts(&self.db, &self.today).ok();
+        self.pending_keys.clear();
+        if let Err(e) = db::schema::delete_today_key_counts(&self.db, &self.today) {
+            tracing::warn!("Failed to delete key counts: {}", e);
+        }
         self.flush_to_db();
     }
 
@@ -200,7 +215,22 @@ impl StatsManager {
 
     pub fn clear_all_data(&mut self) {
         self.reset_today();
-        db::schema::delete_all(&self.db).ok();
+        if let Err(e) = db::schema::delete_all(&self.db) {
+            tracing::warn!("Failed to clear all data: {}", e);
+        }
+    }
+}
+
+/// Lock the shared StatsManager, returning None and logging on poison.
+pub fn lock_stats(
+    stats: &std::sync::Arc<std::sync::Mutex<StatsManager>>,
+) -> Option<std::sync::MutexGuard<'_, StatsManager>> {
+    match stats.lock() {
+        Ok(guard) => Some(guard),
+        Err(e) => {
+            tracing::error!("StatsManager mutex poisoned: {}", e);
+            None
+        }
     }
 }
 
@@ -278,5 +308,32 @@ mod tests {
             .unwrap();
         assert_eq!(mgr.snapshot().key_presses, 12); // 2 + 10
         assert_eq!(mgr.snapshot().left_clicks, 5);
+    }
+
+    #[test]
+    fn flush_writes_pending_keys() {
+        let mut mgr = test_mgr();
+        mgr.record_key_press("A", true);
+        mgr.record_key_press("A", true);
+        mgr.record_key_press("B", true);
+        // Force flush
+        mgr.force_flush();
+
+        let keys = mgr.top_keys(10).unwrap();
+        assert_eq!(keys.len(), 2);
+        let a = keys.iter().find(|k| k.key_name == "A").unwrap();
+        assert_eq!(a.count, 2);
+        let b = keys.iter().find(|k| k.key_name == "B").unwrap();
+        assert_eq!(b.count, 1);
+    }
+
+    #[test]
+    fn reset_clears_pending_keys() {
+        let mut mgr = test_mgr();
+        mgr.record_key_press("A", true);
+        mgr.record_key_press("B", true);
+        assert_eq!(mgr.pending_keys.len(), 2);
+        mgr.reset_today();
+        assert!(mgr.pending_keys.is_empty());
     }
 }
