@@ -6,7 +6,7 @@ import Clutter from 'gi://Clutter';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
-import {Extension, gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
+import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 const BUS_NAME = 'io.github.x0x5c0f.KeyStats';
 const OBJ_PATH = '/io/github/0x5c0f/KeyStats';
@@ -185,24 +185,24 @@ export default class KeyStatsExtension extends Extension {
         box.add_child(this._hero);
 
         // 3. Click detail
-        box.add_child(sectionLabel(_('Mouse Click Detail')));
+        box.add_child(sectionLabel(this.gettext('Mouse Click Detail')));
         this._clickRow = new St.BoxLayout({style_class: 'ks-click-row'});
         box.add_child(this._clickRow);
         this._sideRow = new St.BoxLayout({style_class: 'ks-click-row'});
         box.add_child(this._sideRow);
 
         // 4. Distance
-        box.add_child(sectionLabel(_('Distance')));
+        box.add_child(sectionLabel(this.gettext('Distance')));
         this._distRow = new St.BoxLayout({style_class: 'ks-dist-row'});
         box.add_child(this._distRow);
 
         // 5. Key Breakdown — placeholder for future feature
-        box.add_child(sectionLabel(_('Key Breakdown')));
+        box.add_child(sectionLabel(this.gettext('Key Breakdown')));
         this._keySection = new St.BoxLayout({vertical: true, style_class: 'ks-key-grid'});
         box.add_child(this._keySection);
 
         // 6. History
-        box.add_child(sectionLabel(_('History (7 days)')));
+        box.add_child(sectionLabel(this.gettext('History (7 days)')));
         this._histBox = new St.BoxLayout({vertical: true});
         box.add_child(this._histBox);
 
@@ -210,7 +210,7 @@ export default class KeyStatsExtension extends Extension {
         let sep = new St.BoxLayout({style_class: 'ks-sep'});
         box.add_child(sep);
         this._actions = new St.BoxLayout({style_class: 'ks-actions'});
-        let prefs = actionBtn(_('Preferences'));
+        let prefs = actionBtn(this.gettext('Preferences'));
         prefs.connect('clicked', () => {
             try {
                 Gio.DBus.session.call('org.gnome.Shell.Extensions', '/org/gnome/Shell/Extensions',
@@ -244,37 +244,37 @@ export default class KeyStatsExtension extends Extension {
 
             let sk = this._settings.get_boolean('show-keys');
             let sc = this._settings.get_boolean('show-clicks');
-            this._keyLabel.text = sk ? _('K') + fmtNum(keys) : '';
-            this._clickLabel.text = sc ? ' ' + _('C') + fmtNum(clicks) : '';
-            this._kpsLbl.text = _('K') + kps + ' ' + _('C') + cps + _('/s');
+            this._keyLabel.text = sk ? this.gettext('K') + fmtNum(keys) : '';
+            this._clickLabel.text = sc ? ' ' + this.gettext('C') + fmtNum(clicks) : '';
+            this._kpsLbl.text = this.gettext('K') + kps + ' ' + this.gettext('C') + cps + this.gettext('/s');
             // Connection: green when daemon reachable
             this._connDot.remove_style_class_name('ks-conn-err');
             this._connDot.add_style_class_name('ks-conn-ok');
 
             this._hero.destroy_all_children();
-            this._hero.add_child(heroCard(_('Key Presses'), keys, fmtNum));
-            this._hero.add_child(heroCard(_('Mouse Clicks'), clicks, fmtNum));
+            this._hero.add_child(heroCard(this.gettext('Key Presses'), keys, fmtNum));
+            this._hero.add_child(heroCard(this.gettext('Mouse Clicks'), clicks, fmtNum));
 
             this._clickRow.destroy_all_children();
-            this._clickRow.add_child(clickTile(_('Left'), lc));
-            this._clickRow.add_child(clickTile(_('Middle'), mc));
-            this._clickRow.add_child(clickTile(_('Right'), rc));
+            this._clickRow.add_child(clickTile(this.gettext('Left'), lc));
+            this._clickRow.add_child(clickTile(this.gettext('Middle'), mc));
+            this._clickRow.add_child(clickTile(this.gettext('Right'), rc));
             this._sideRow.destroy_all_children();
             if (sbc > 0 || sfc > 0) {
-                this._sideRow.add_child(clickTile(_('Side Back'), sbc));
-                this._sideRow.add_child(clickTile(_('Side Fwd'), sfc));
+                this._sideRow.add_child(clickTile(this.gettext('Side Back'), sbc));
+                this._sideRow.add_child(clickTile(this.gettext('Side Fwd'), sfc));
             }
 
             this._distRow.destroy_all_children();
-            this._distRow.add_child(distCard(_('Mouse Dist'), md, fmtMouseDist));
-            this._distRow.add_child(distCard(_('Scroll Dist'), sd, fmtScrollDist));
+            this._distRow.add_child(distCard(this.gettext('Mouse Dist'), md, fmtMouseDist));
+            this._distRow.add_child(distCard(this.gettext('Scroll Dist'), sd, fmtScrollDist));
 
             this._fetchHistory();
             this._fetchKeyBreakdown();
         } catch (e) {
-            this._keyLabel.text = _('K') + '--';
-            this._clickLabel.text = _('C') + '--';
-            this._kpsLbl.text = _('offline');
+            this._keyLabel.text = this.gettext('K') + '--';
+            this._clickLabel.text = this.gettext('C') + '--';
+            this._kpsLbl.text = this.gettext('offline');
             this._connDot.remove_style_class_name('ks-conn-ok');
             this._connDot.add_style_class_name('ks-conn-err');
         }
@@ -294,7 +294,7 @@ export default class KeyStatsExtension extends Extension {
 
             if (!keys || keys.length === 0) {
                 this._keySection.add_child(
-                    new St.Label({text: _('No keys recorded yet'), style_class: 'ks-dim'})
+                    new St.Label({text: this.gettext('No keys recorded yet'), style_class: 'ks-dim'})
                 );
                 return;
             }
@@ -349,7 +349,7 @@ export default class KeyStatsExtension extends Extension {
             let data = JSON.parse(json ?? '[]');
             this._histBox.destroy_all_children();
             if (!data || data.length === 0) {
-                this._histBox.add_child(new St.Label({text: _('No history yet'), style_class: 'ks-dim'}));
+                this._histBox.add_child(new St.Label({text: this.gettext('No history yet'), style_class: 'ks-dim'}));
                 return;
             }
             let maxK = Math.max(1, ...data.map(d => d.key_presses ?? 0));
