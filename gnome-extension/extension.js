@@ -356,17 +356,17 @@ export default class KeyStatsExtension extends Extension {
             let wrap = new St.BoxLayout({style_class: 'ks-hist-wrap', vertical: true});
             let bars = new St.BoxLayout({style_class: 'ks-hist-bars'});
             for (let d of data.slice().reverse()) {
-                let col = new St.BoxLayout({vertical: true, style: 'margin-right: 5px;'});
-                let dt = new St.Label({text: (d.date ?? '').slice(5), style_class: 'ks-hist-date'});
+                let col = new St.BoxLayout({vertical: true, y_expand: true, y_align: Clutter.ActorAlign.END, style: 'margin-right: 5px;'});
                 let h = Math.max(3, ((d.key_presses ?? 0) / maxK * 36));
                 let bar = new St.BoxLayout({
                     style: 'background-color: #0078d4; border-radius: 2px;'
                         + ' min-height: ' + h + 'px; min-width: 24px;',
                 });
                 let lbl = new St.Label({text: fmtNum(d.key_presses ?? 0), style_class: 'ks-hist-label'});
-                col.add_child(dt);
+                let dt = new St.Label({text: (d.date ?? '').slice(5), style_class: 'ks-hist-date'});
                 col.add_child(bar);
                 col.add_child(lbl);
+                col.add_child(dt);
                 bars.add_child(col);
             }
             wrap.add_child(bars);
