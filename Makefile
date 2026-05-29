@@ -2,6 +2,7 @@
 # Usage:
 #   make build    — build daemon + CLI (release) and compile locale
 #   make install  — install daemon + systemd service + GNOME extension
+#   make upgrade  — safe upgrade: daemon + systemd + extension (disable→install→enable)
 #   make zip      — package extension as zip for distribution
 #   make dist     — create binary tarball for GitHub releases
 #   make test     — cargo test (all crates)
@@ -16,7 +17,7 @@ VERSION      := $(shell cargo metadata --no-deps --format-version=1 2>/dev/null 
 DIST_NAME    := keystats-$(VERSION)-linux-x86_64
 DIST_DIR     := target/dist/$(DIST_NAME)
 
-.PHONY: build install zip dist test check clean
+.PHONY: build install upgrade zip dist test check clean
 
 # ── Build ──────────────────────────────────────────────
 
@@ -54,6 +55,45 @@ install-extension: build-locale
 	cp -r gnome-extension/schemas $(EXT_DIR)/
 	cp -r gnome-extension/locale $(EXT_DIR)/
 	glib-compile-schemas $(EXT_DIR)/schemas/
+
+upgrade:
+	@echo "Stopping keystats service..."
+	@systemctl --user stop keystats.service || true
+	@echo "Disabling extension..."
+	@gnome-extensions disable keystats@0x5c0f.github.io || true
+	@sleep 1
+	$(MAKE) install-daemon install-systemd
+	$(MAKE) build-locale
+	@mkdir -p $(EXT_DIR)
+	@cp gnome-extension/metadata.json $(EXT_DIR)/
+	@cp gnome-extension/extension.js $(EXT_DIR)/
+	@cp gnome-extension/prefs.js $(EXT_DIR)/
+	@cp gnome-extension/stylesheet.css $(EXT_DIR)/
+	@cp -r gnome-extension/schemas $(EXT_DIR)/
+	@cp -r gnome-extension/locale $(EXT_DIR)/
+	@glib-compile-schemas $(EXT_DIR)/schemas/
+	@echo "Restarting keystats service..."
+	@systemctl --user restart keystats.service || true
+	@sleep 1
+	@echo "Re-enabling extension..."
+	@gnome-extensions enable keystats@0x5c0f.github.io || true
+	@echo "Upgrade complete."
+
+upgrade-extension: build-locale
+	@echo "Disabling extension..."
+	@gnome-extensions disable keystats@0x5c0f.github.io || true
+	@sleep 1
+	mkdir -p $(EXT_DIR)
+	cp gnome-extension/metadata.json $(EXT_DIR)/
+	cp gnome-extension/extension.js $(EXT_DIR)/
+	cp gnome-extension/prefs.js $(EXT_DIR)/
+	cp gnome-extension/stylesheet.css $(EXT_DIR)/
+	cp -r gnome-extension/schemas $(EXT_DIR)/
+	cp -r gnome-extension/locale $(EXT_DIR)/
+	glib-compile-schemas $(EXT_DIR)/schemas/
+	@sleep 1
+	@echo "Re-enabling extension..."
+	@gnome-extensions enable keystats@0x5c0f.github.io || true
 
 # ── Package ────────────────────────────────────────────
 

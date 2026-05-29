@@ -1,13 +1,14 @@
 # KeyStats.Linux — Binary Package Installer
 # Usage:
 #   make install    — install binaries and systemd service
+#   make upgrade    — safe upgrade: stop service → install → restart
 #   make uninstall  — remove installed files
 #   make enable     — enable and start the daemon service
 
 PREFIX       := $(HOME)/.local
 SYSTEMD_USER := $(HOME)/.config/systemd/user
 
-.PHONY: install uninstall enable
+.PHONY: install upgrade uninstall enable
 
 install:
 	mkdir -p $(PREFIX)/bin
@@ -33,6 +34,20 @@ install:
 	@echo "     make enable"
 	@echo "  3. Reload GNOME Shell, then enable the extension:"
 	@echo "     gnome-extensions enable keystats@0x5c0f.github.io"
+
+upgrade:
+	@echo "Stopping keystats service..."
+	@systemctl --user stop keystats.service || true
+	@sleep 1
+	mkdir -p $(PREFIX)/bin
+	install -m 755 bin/keystats-daemon $(PREFIX)/bin/
+	install -m 755 bin/keystatsctl $(PREFIX)/bin/
+	mkdir -p $(SYSTEMD_USER)
+	install -m 644 systemd/keystats.service $(SYSTEMD_USER)/
+	systemctl --user daemon-reload
+	@echo "Restarting keystats service..."
+	@systemctl --user restart keystats.service || true
+	@echo "Upgrade complete."
 
 enable:
 	systemctl --user enable --now keystats

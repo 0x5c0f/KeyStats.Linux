@@ -3,6 +3,7 @@
 #   make mo       — compile .po → .mo language packs
 #   make zip      — package extension as zip (includes locale)
 #   make install  — install extension to local GNOME Shell
+#   make upgrade  — safe install: disable → install → re-enable (prevents crash)
 #   make pot      — extract translatable strings from source
 #   make po       — update .po files with new strings
 #   make clean    — remove generated files
@@ -19,7 +20,7 @@ ZIP_SOURCES   := metadata.json extension.js prefs.js stylesheet.css schemas/ loc
 
 LANGS := zh_CN
 
-.PHONY: all mo zip install pot po clean
+.PHONY: all mo zip install upgrade pot po clean
 
 all: mo
 
@@ -66,6 +67,20 @@ install: mo
 	cp -r locale $(INSTALL_DIR)/
 	glib-compile-schemas $(INSTALL_DIR)/schemas/
 	@echo "Installed extension to $(INSTALL_DIR)"
+
+upgrade: mo
+	@echo "Disabling extension..."
+	@gnome-extensions disable keystats@0x5c0f.github.io || true
+	@sleep 1
+	@mkdir -p $(INSTALL_DIR)
+	cp metadata.json extension.js prefs.js stylesheet.css $(INSTALL_DIR)/
+	cp -r schemas $(INSTALL_DIR)/
+	cp -r locale $(INSTALL_DIR)/
+	glib-compile-schemas $(INSTALL_DIR)/schemas/
+	@sleep 1
+	@echo "Re-enabling extension..."
+	@gnome-extensions enable keystats@0x5c0f.github.io || true
+	@echo "Upgraded extension in $(INSTALL_DIR)"
 
 clean:
 	rm -f $(PO_DIR)/*.po~
