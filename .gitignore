@@ -5,3 +5,4 @@
 # GNOME extension (generated)
 gnome-extension/locale/
 gnome-extension/*.zip
+gnome-extension/schemas/gschemas.compiled
