@@ -1,6 +1,6 @@
 # KeyStats.Linux
 
-[English](README.md)
+[English](README.md) | 简体中文
 
 隐私优先的 Linux 键盘鼠标统计工具 — 基于 GNOME Shell 集成，Rust 守护进程后端。
 
@@ -60,6 +60,9 @@
 ### 构建和安装
 
 ```bash
+git clone https://github.com/0x5c0f/KeyStats.Linux.git
+cd KeyStats.Linux
+
 # 构建全部（daemon + CLI + 语言包）
 make build
 

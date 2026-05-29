@@ -1,6 +1,6 @@
 # KeyStats Linux 打包文档
 
-[English](README.md)
+[English](README.md) | 简体中文
 
 所有命令假设你在 **仓库根目录**。除特别说明外，路径均相对于仓库根目录。
 

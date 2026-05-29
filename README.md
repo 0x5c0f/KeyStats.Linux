@@ -1,6 +1,6 @@
 # KeyStats.Linux
 
-[简体中文](README.zh-CN.md)
+English | [简体中文](README.zh-CN.md)
 
 Privacy-first keyboard and mouse statistics for Linux — a GNOME Shell integration with a Rust-backed daemon.
 
@@ -60,6 +60,9 @@ Inspired by [KeyStats](https://github.com/debugtheworldbot/KeyStats) (macOS &amp
 ### Build & Install
 
 ```bash
+git clone https://github.com/0x5c0f/KeyStats.Linux.git
+cd KeyStats.Linux
+
 # Build all (daemon + CLI + locale)
 make build
 

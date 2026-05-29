@@ -1,6 +1,6 @@
 # KeyStats Linux Packaging
 
-[简体中文](README.zh-CN.md)
+English | [简体中文](README.zh-CN.md)
 
 All commands assume you are in the **repository root**. Paths are relative to the repo root unless stated otherwise.
 
