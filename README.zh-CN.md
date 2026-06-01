@@ -98,6 +98,8 @@ keystatsctl doctor
 keystatsctl history              # 7 天终端柱状图（按键 + 鼠标）
 keystatsctl history --days 30    # 最近 30 天
 keystatsctl history --keys       # 仅按键统计
+keystatsctl keys                 # 今日按键统计
+keystatsctl keys --date 2026-06-01 --limit 10
 ```
 
 更多安装选项、权限排查和打包说明详见 [packaging/README.zh-CN.md](packaging/README.zh-CN.md)。

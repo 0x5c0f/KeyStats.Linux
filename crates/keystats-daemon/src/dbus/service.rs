@@ -143,6 +143,14 @@ impl KeyStatsService {
         }
     }
 
+    fn get_top_keys_for_date(&self, date: &str, limit: u32) -> String {
+        let Some(mgr) = lock_stats(&self.stats) else { return String::new(); };
+        match mgr.top_keys_for_date(date, limit) {
+            Ok(keys) => serde_json::to_string(&keys).unwrap_or_default(),
+            Err(e) => format!(r#"{{"error":"{}"}}"#, e),
+        }
+    }
+
     fn reset_today(&self) -> bool {
         let Some(mut mgr) = lock_stats(&self.stats) else { return false; };
         mgr.reset_today();

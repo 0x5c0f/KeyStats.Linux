@@ -98,6 +98,8 @@ keystatsctl doctor
 keystatsctl history              # 7-day terminal chart (keys + clicks)
 keystatsctl history --days 30    # last 30 days
 keystatsctl history --keys       # key presses only
+keystatsctl keys                 # today's key breakdown
+keystatsctl keys --date 2026-06-01 --limit 10
 ```
 
 For detailed installation options, permissions troubleshooting, and packaging instructions, see [packaging/README.md](packaging/README.md).

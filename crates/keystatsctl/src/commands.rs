@@ -1,5 +1,5 @@
 use evdev::Device;
-use keystats_core::DailyStats;
+use keystats_core::{DailyStats, KeyCount};
 use std::collections::HashMap;
 use zbus::zvariant::Value;
 
@@ -292,5 +292,61 @@ pub fn history(days: u32, show_keys: bool, show_clicks: bool) {
     }
     if show_mixed || show_clicks {
         render_chart("Mouse clicks", &click_data);
+    }
+}
+
+// ── Keys command ───────────────────────────────────────
+
+fn fetch_top_keys_for_date(date: &str, limit: u32) -> Result<Vec<KeyCount>, String> {
+    let conn = zbus::blocking::Connection::session()
+        .map_err(|e| format!("Failed to connect to D-Bus: {}", e))?;
+
+    let reply = conn
+        .call_method(
+            Some(BUS_NAME),
+            OBJ_PATH,
+            Some(IFACE),
+            "GetTopKeysForDate",
+            &(date, limit),
+        )
+        .map_err(|e| format!("D-Bus call failed: {}", e))?;
+
+    let json: String = reply
+        .body()
+        .deserialize()
+        .map_err(|e| format!("Failed to parse response: {}", e))?;
+
+    serde_json::from_str(&json).map_err(|e| format!("Failed to parse keys JSON: {}", e))
+}
+
+pub fn keys(date: Option<String>, limit: u32) {
+    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    let query_date = date.as_deref().unwrap_or(&today);
+
+    let data = match fetch_top_keys_for_date(query_date, limit) {
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            return;
+        }
+    };
+
+    if data.is_empty() {
+        println!("No key data for {}.", query_date);
+        return;
+    }
+
+    let total: u64 = data.iter().map(|k| k.count).sum();
+    println!("Key Breakdown ({}):  {} keys, {} unique\n", query_date, fmt_num(total), data.len());
+
+    let max_value = data.iter().map(|k| k.count).max().unwrap_or(1);
+    let width = terminal_width();
+    // key_name(12) + gap(2) + bar + gap(1) + value(6)
+    let bar_width = width.saturating_sub(21).max(10);
+
+    for k in &data {
+        let bar = render_bar(k.count, max_value, bar_width);
+        let val_str = fmt_num(k.count);
+        println!("{:<12} {} {}", k.key_name, bar, val_str);
     }
 }

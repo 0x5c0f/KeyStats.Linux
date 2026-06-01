@@ -213,6 +213,10 @@ impl StatsManager {
         db::schema::top_keys(&self.db, &self.today, limit)
     }
 
+    pub fn top_keys_for_date(&self, date: &str, limit: u32) -> Result<Vec<keystats_core::KeyCount>, rusqlite::Error> {
+        db::schema::top_keys(&self.db, date, limit)
+    }
+
     pub fn clear_all_data(&mut self) {
         self.reset_today();
         if let Err(e) = db::schema::delete_all(&self.db) {

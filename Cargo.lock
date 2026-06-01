@@ -649,7 +649,7 @@ dependencies = [
 
 [[package]]
 name = "keystats-core"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "chrono",
  "serde",
@@ -658,7 +658,7 @@ dependencies = [
 
 [[package]]
 name = "keystats-daemon"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "chrono",
  "evdev",
@@ -674,7 +674,7 @@ dependencies = [
 
 [[package]]
 name = "keystatsctl"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "chrono",
  "clap",

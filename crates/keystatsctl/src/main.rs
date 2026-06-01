@@ -28,6 +28,15 @@ enum Commands {
         #[arg(long)]
         clicks: bool,
     },
+    /// Show key breakdown statistics
+    Keys {
+        /// Date to query (YYYY-MM-DD), defaults to today
+        #[arg(long)]
+        date: Option<String>,
+        /// Number of top keys to display
+        #[arg(long, default_value_t = 15)]
+        limit: u32,
+    },
 }
 
 fn main() {
@@ -36,5 +45,6 @@ fn main() {
         Commands::Status => commands::status(),
         Commands::Doctor => commands::doctor(),
         Commands::History { days, keys, clicks } => commands::history(days, keys, clicks),
+        Commands::Keys { date, limit } => commands::keys(date, limit),
     }
 }
