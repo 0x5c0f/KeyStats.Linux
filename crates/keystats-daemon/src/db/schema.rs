@@ -132,10 +132,26 @@ pub fn load_history(
     days: u32,
 ) -> Result<Vec<keystats_core::DailyStats>, rusqlite::Error> {
     let mut stmt = conn.prepare(
-        "SELECT date, key_presses, left_clicks, middle_clicks, right_clicks,
-         side_back_clicks, side_forward_clicks, mouse_distance, scroll_distance,
-         peak_kps, peak_cps, updated_at
-         FROM daily_stats ORDER BY date DESC LIMIT ?1",
+        "WITH RECURSIVE dates(d) AS (
+            SELECT date('now')
+            UNION ALL
+            SELECT date(d, '-1 day') FROM dates LIMIT ?1
+        )
+        SELECT dates.d,
+               COALESCE(ds.key_presses, 0),
+               COALESCE(ds.left_clicks, 0),
+               COALESCE(ds.middle_clicks, 0),
+               COALESCE(ds.right_clicks, 0),
+               COALESCE(ds.side_back_clicks, 0),
+               COALESCE(ds.side_forward_clicks, 0),
+               COALESCE(ds.mouse_distance, 0.0),
+               COALESCE(ds.scroll_distance, 0.0),
+               COALESCE(ds.peak_kps, 0),
+               COALESCE(ds.peak_cps, 0),
+               COALESCE(ds.updated_at, '')
+        FROM dates
+        LEFT JOIN daily_stats ds ON dates.d = ds.date
+        ORDER BY dates.d DESC",
     )?;
     let rows = stmt.query_map(rusqlite::params![days], |row| {
         Ok(keystats_core::DailyStats {
@@ -301,19 +317,38 @@ mod tests {
         let conn = Connection::open_in_memory().unwrap();
         migrate(&conn).unwrap();
 
-        for day in 1..=5 {
-            let date = format!("2026-05-{:02}", day);
-            let s = keystats_core::DailyStats {
-                date,
-                key_presses: day * 10,
-                ..Default::default()
-            };
-            upsert_daily_stats(&conn, &s).unwrap();
-        }
+        let history = load_history(&conn, 3).unwrap();
+        assert_eq!(history.len(), 3);
+        // Today first, descending
+        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        assert_eq!(history[0].date, today);
+        // All dates are consecutive
+        assert!(history[0].date > history[1].date);
+        assert!(history[1].date > history[2].date);
+    }
+
+    #[test]
+    fn history_fills_gaps_with_zeros() {
+        let conn = Connection::open_in_memory().unwrap();
+        migrate(&conn).unwrap();
+
+        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        let s = keystats_core::DailyStats {
+            date: today.clone(),
+            key_presses: 100,
+            left_clicks: 10,
+            ..Default::default()
+        };
+        upsert_daily_stats(&conn, &s).unwrap();
 
         let history = load_history(&conn, 3).unwrap();
         assert_eq!(history.len(), 3);
-        // Most recent first
-        assert_eq!(history[0].key_presses, 50);
+        // Today has data
+        assert_eq!(history[0].date, today);
+        assert_eq!(history[0].key_presses, 100);
+        // Yesterday and day before are zeros
+        assert_eq!(history[1].key_presses, 0);
+        assert_eq!(history[2].key_presses, 0);
+        assert_eq!(history[1].left_clicks, 0);
     }
 }
