@@ -1,4 +1,5 @@
 use evdev::Device;
+use keystats_core::format::format_count;
 use keystats_core::{DailyStats, KeyCount};
 use std::collections::HashMap;
 use zbus::zvariant::Value;
@@ -28,6 +29,7 @@ fn get_u32(map: &HashMap<String, Value<'_>>, key: &str) -> u32 {
     }
 }
 
+/// Query the daemon via D-Bus and print today's stats summary.
 pub fn status() {
     let conn = match zbus::blocking::Connection::session() {
         Ok(c) => c,
@@ -37,13 +39,7 @@ pub fn status() {
         }
     };
 
-    let reply = conn.call_method(
-        Some(BUS_NAME),
-        OBJ_PATH,
-        Some(IFACE),
-        "GetTodayStats",
-        &(),
-    );
+    let reply = conn.call_method(Some(BUS_NAME), OBJ_PATH, Some(IFACE), "GetTodayStats", &());
 
     let body = match reply {
         Ok(msg) => msg,
@@ -81,6 +77,7 @@ pub fn status() {
     println!("  KPS: {} (peak {})  CPS: {} (peak {})", kps, peak_kps, cps, peak_cps);
 }
 
+/// Scan /dev/input devices and report permission issues.
 pub fn doctor() {
     println!("Permission diagnostic:\n");
 
@@ -91,6 +88,7 @@ pub fn doctor() {
     let mut other = Vec::new();
 
     for i in 0..64 {
+        // TODO: extract MAX_EVENT_DEVICES to shared constant
         let path = format!("/dev/input/event{}", i);
         if !std::path::Path::new(&path).exists() {
             continue;
@@ -103,10 +101,7 @@ pub fn doctor() {
                 let caps = device.supported_events();
                 let has_keys = caps.contains(evdev::EventType::KEY);
                 let has_rel = caps.contains(evdev::EventType::RELATIVE);
-                let key_count = device
-                    .supported_keys()
-                    .map(|k| k.iter().count())
-                    .unwrap_or(0);
+                let key_count = device.supported_keys().map(|k| k.iter().count()).unwrap_or(0);
 
                 match (has_keys, has_rel, key_count) {
                     (true, true, _) => pointers.push(format!("  {} (keyboard+pointer)", name)),
@@ -162,20 +157,7 @@ pub fn doctor() {
 const BLOCKS: [char; 8] = ['▏', '▎', '▍', '▌', '▋', '▊', '▉', '█'];
 
 fn terminal_width() -> usize {
-    std::env::var("COLUMNS")
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(80)
-}
-
-fn fmt_num(n: u64) -> String {
-    if n >= 1_000_000 {
-        format!("{:.1}M", n as f64 / 1_000_000.0)
-    } else if n >= 1_000 {
-        format!("{:.1}K", n as f64 / 1_000.0)
-    } else {
-        format!("{}", n)
-    }
+    std::env::var("COLUMNS").ok().and_then(|s| s.parse().ok()).unwrap_or(80)
 }
 
 fn render_bar(value: u64, max_value: u64, bar_width: usize) -> String {
@@ -210,7 +192,7 @@ fn render_chart(title: &str, data: &[(String, u64)]) {
     for (date, value) in data {
         let date_short = if date.len() >= 5 { &date[date.len() - 5..] } else { date };
         let bar = render_bar(*value, max_value, bar_width);
-        let val_str = fmt_num(*value);
+        let val_str = format_count(*value);
         println!("{}  {} {}", date_short, bar, val_str);
     }
 }
@@ -220,23 +202,16 @@ fn fetch_history(days: u32) -> Result<Vec<DailyStats>, String> {
         .map_err(|e| format!("Failed to connect to D-Bus: {}", e))?;
 
     let reply = conn
-        .call_method(
-            Some(BUS_NAME),
-            OBJ_PATH,
-            Some(IFACE),
-            "GetHistory",
-            &(days,),
-        )
+        .call_method(Some(BUS_NAME), OBJ_PATH, Some(IFACE), "GetHistory", &(days,))
         .map_err(|e| format!("D-Bus call failed: {}", e))?;
 
-    let json: String = reply
-        .body()
-        .deserialize()
-        .map_err(|e| format!("Failed to parse response: {}", e))?;
+    let json: String =
+        reply.body().deserialize().map_err(|e| format!("Failed to parse response: {}", e))?;
 
     serde_json::from_str(&json).map_err(|e| format!("Failed to parse history JSON: {}", e))
 }
 
+/// Display historical stats as terminal bar charts.
 pub fn history(days: u32, show_keys: bool, show_clicks: bool) {
     let data = match fetch_history(days) {
         Ok(d) => d,
@@ -256,32 +231,31 @@ pub fn history(days: u32, show_keys: bool, show_clicks: bool) {
     // Summary totals
     let total_keys: u64 = data.iter().map(|d| d.key_presses).sum();
     let total_clicks: u64 = data.iter().map(|d| d.total_clicks()).sum();
-    let date_range = format!("{} ~ {}", data.last().unwrap().date, data.first().unwrap().date);
+    let date_range = data
+        .last()
+        .and_then(|last| data.first().map(|first| format!("{} ~ {}", last.date, first.date)))
+        .unwrap_or_default();
 
     println!("History ({} days, {})", days, date_range);
     if show_mixed || show_keys {
-        print!("  Keys: {}", fmt_num(total_keys));
+        print!("  Keys: {}", format_count(total_keys));
     }
     if show_mixed || show_clicks {
         if show_mixed || show_keys {
             print!("  |  ");
         }
-        print!("Clicks: {}", fmt_num(total_clicks));
+        print!("Clicks: {}", format_count(total_clicks));
     }
     println!("\n");
 
     // Prepare key press data (newest first)
-    let mut key_data: Vec<(String, u64)> = data
-        .iter()
-        .map(|d| (d.date.clone(), d.key_presses))
-        .collect();
+    let mut key_data: Vec<(String, u64)> =
+        data.iter().map(|d| (d.date.clone(), d.key_presses)).collect();
     key_data.reverse();
 
     // Prepare click data
-    let mut click_data: Vec<(String, u64)> = data
-        .iter()
-        .map(|d| (d.date.clone(), d.total_clicks()))
-        .collect();
+    let mut click_data: Vec<(String, u64)> =
+        data.iter().map(|d| (d.date.clone(), d.total_clicks())).collect();
     click_data.reverse();
 
     if show_mixed || show_keys {
@@ -302,23 +276,16 @@ fn fetch_top_keys_for_date(date: &str, limit: u32) -> Result<Vec<KeyCount>, Stri
         .map_err(|e| format!("Failed to connect to D-Bus: {}", e))?;
 
     let reply = conn
-        .call_method(
-            Some(BUS_NAME),
-            OBJ_PATH,
-            Some(IFACE),
-            "GetTopKeysForDate",
-            &(date, limit),
-        )
+        .call_method(Some(BUS_NAME), OBJ_PATH, Some(IFACE), "GetTopKeysForDate", &(date, limit))
         .map_err(|e| format!("D-Bus call failed: {}", e))?;
 
-    let json: String = reply
-        .body()
-        .deserialize()
-        .map_err(|e| format!("Failed to parse response: {}", e))?;
+    let json: String =
+        reply.body().deserialize().map_err(|e| format!("Failed to parse response: {}", e))?;
 
     serde_json::from_str(&json).map_err(|e| format!("Failed to parse keys JSON: {}", e))
 }
 
+/// Display per-key usage breakdown as a horizontal bar chart.
 pub fn keys(date: Option<String>, limit: u32) {
     let today = chrono::Local::now().format("%Y-%m-%d").to_string();
     let query_date = date.as_deref().unwrap_or(&today);
@@ -337,7 +304,12 @@ pub fn keys(date: Option<String>, limit: u32) {
     }
 
     let total: u64 = data.iter().map(|k| k.count).sum();
-    println!("Key Breakdown ({}):  {} keys, {} unique\n", query_date, fmt_num(total), data.len());
+    println!(
+        "Key Breakdown ({}):  {} keys, {} unique\n",
+        query_date,
+        format_count(total),
+        data.len()
+    );
 
     let max_value = data.iter().map(|k| k.count).max().unwrap_or(1);
     let width = terminal_width();
@@ -346,7 +318,7 @@ pub fn keys(date: Option<String>, limit: u32) {
 
     for k in &data {
         let bar = render_bar(k.count, max_value, bar_width);
-        let val_str = fmt_num(k.count);
+        let val_str = format_count(k.count);
         println!("{:<12} {} {}", k.key_name, bar, val_str);
     }
 }

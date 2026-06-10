@@ -1,12 +1,11 @@
-use std::collections::HashMap;
 use rusqlite::Connection;
+use std::collections::HashMap;
 
 const SCHEMA_VERSION: i32 = 2;
 
+/// Run incremental schema migrations based on `user_version` pragma.
 pub fn migrate(conn: &Connection) -> Result<(), rusqlite::Error> {
-    let version: i32 = conn
-        .pragma_query_value(None, "user_version", |row| row.get(0))
-        .unwrap_or(0);
+    let version: i32 = conn.pragma_query_value(None, "user_version", |row| row.get(0)).unwrap_or(0);
 
     if version < 1 {
         conn.execute_batch(
@@ -53,6 +52,7 @@ pub fn migrate(conn: &Connection) -> Result<(), rusqlite::Error> {
     Ok(())
 }
 
+/// Insert or update daily stats for a given date.
 pub fn upsert_daily_stats(
     conn: &Connection,
     stats: &keystats_core::DailyStats,
@@ -91,6 +91,7 @@ pub fn upsert_daily_stats(
     Ok(())
 }
 
+/// Load daily stats for a specific date, returning `None` if no record exists.
 pub fn load_daily_stats(
     conn: &Connection,
     date: &str,
@@ -126,7 +127,7 @@ pub fn load_daily_stats(
     }
 }
 
-#[allow(dead_code)]
+/// Load the last `days` days of stats, filling gaps with zeros (newest first).
 pub fn load_history(
     conn: &Connection,
     days: u32,
@@ -174,7 +175,7 @@ pub fn load_history(
     rows.collect()
 }
 
-
+/// Atomically increment per-key counts for a given date.
 pub fn batch_incr_key_counts(
     conn: &mut Connection,
     date: &str,
@@ -191,6 +192,7 @@ pub fn batch_incr_key_counts(
     tx.commit()
 }
 
+/// Get the most-pressed keys for a date, ordered by count descending.
 pub fn top_keys(
     conn: &Connection,
     date: &str,
@@ -201,19 +203,18 @@ pub fn top_keys(
          WHERE date = ?1 ORDER BY count DESC LIMIT ?2",
     )?;
     let rows = stmt.query_map(rusqlite::params![date, limit], |row| {
-        Ok(keystats_core::KeyCount {
-            key_name: row.get(0)?,
-            count: row.get(1)?,
-        })
+        Ok(keystats_core::KeyCount { key_name: row.get(0)?, count: row.get(1)? })
     })?;
     rows.collect()
 }
 
+/// Delete all key breakdown records for a specific date.
 pub fn delete_today_key_counts(conn: &Connection, date: &str) -> Result<(), rusqlite::Error> {
     conn.execute("DELETE FROM key_counts WHERE date = ?1", rusqlite::params![date])?;
     Ok(())
 }
 
+/// Delete all data (daily stats and key counts). Use with caution.
 pub fn delete_all(conn: &Connection) -> Result<(), rusqlite::Error> {
     conn.execute_batch("DELETE FROM daily_stats; DELETE FROM key_counts;")?;
     Ok(())
@@ -228,16 +229,10 @@ mod tests {
         let conn = Connection::open_in_memory().unwrap();
         migrate(&conn).unwrap();
         // Verify tables exist
-        let c: i64 = conn
-            .query_row("SELECT COUNT(*) FROM daily_stats", [], |r| r.get(0))
-            .unwrap();
+        let c: i64 = conn.query_row("SELECT COUNT(*) FROM daily_stats", [], |r| r.get(0)).unwrap();
         assert_eq!(c, 0);
-        conn.query_row("SELECT COUNT(*) FROM key_counts", [], |r| {
-            r.get::<_, i64>(0)
-        })
-        .unwrap();
-        conn.query_row("SELECT COUNT(*) FROM metadata", [], |r| r.get::<_, i64>(0))
-            .unwrap();
+        conn.query_row("SELECT COUNT(*) FROM key_counts", [], |r| r.get::<_, i64>(0)).unwrap();
+        conn.query_row("SELECT COUNT(*) FROM metadata", [], |r| r.get::<_, i64>(0)).unwrap();
     }
 
     #[test]

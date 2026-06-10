@@ -6,10 +6,7 @@ pub fn diagnose() -> PermissionStatus {
 
     let can_read = !devices.is_empty();
     let (message, action) = if blocked.is_empty() && can_read {
-        (
-            "All input devices are readable.".to_string(),
-            "none".to_string(),
-        )
+        ("All input devices are readable.".to_string(), "none".to_string())
     } else if !blocked.is_empty() {
         (
             format!(
@@ -47,9 +44,6 @@ mod tests {
             "Diagnose: readable={} blocked={} action={}",
             status.readable_devices, status.blocked_devices, status.recommended_action
         );
-        assert!(
-            status.readable_devices > 0,
-            "No readable input devices — check permissions"
-        );
+        assert!(status.readable_devices > 0, "No readable input devices — check permissions");
     }
 }

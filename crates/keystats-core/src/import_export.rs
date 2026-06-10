@@ -5,12 +5,17 @@ use crate::DailyStats;
 /// Linux export payload version 1.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExportPayload {
+    /// Schema version (currently `1`).
     pub version: u32,
+    /// ISO-8601 timestamp of when the export was created.
     pub exported_at: String,
+    /// Today's statistics snapshot.
     pub today: DailyStats,
+    /// Historical daily stats (newest first).
     pub history: Vec<DailyStats>,
 }
 
+/// Build an [`ExportPayload`] with the current timestamp.
 pub fn create_export(today: DailyStats, history: Vec<DailyStats>) -> ExportPayload {
     ExportPayload {
         version: 1,
@@ -20,6 +25,7 @@ pub fn create_export(today: DailyStats, history: Vec<DailyStats>) -> ExportPaylo
     }
 }
 
+/// Serialize today's stats and history to a pretty-printed JSON string.
 pub fn export_to_json(
     today: DailyStats,
     history: Vec<DailyStats>,
@@ -28,34 +34,30 @@ pub fn export_to_json(
     serde_json::to_string_pretty(&payload)
 }
 
+/// How imported data should be merged with existing stats.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ImportMode {
+    /// Replace all existing stats with imported data.
     Overwrite,
+    /// Add imported counts to existing stats.
     Merge,
 }
 
+/// Parse a JSON string into an [`ExportPayload`], validating the version field.
 pub fn import_from_json(json: &str) -> Result<ExportPayload, ImportError> {
     serde_json::from_str::<ExportPayload>(json).map_err(ImportError::Parse)
 }
 
-#[derive(Debug)]
+/// Errors that can occur when importing stats from JSON.
+#[derive(Debug, thiserror::Error)]
 pub enum ImportError {
-    Parse(serde_json::Error),
+    /// The input string is not valid JSON or has an unexpected schema.
+    #[error("JSON parse error: {0}")]
+    Parse(#[from] serde_json::Error),
+    /// The export version is not supported by this build.
+    #[error("Unsupported export version: {0}")]
     UnsupportedVersion(u32),
 }
-
-impl std::fmt::Display for ImportError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ImportError::Parse(e) => write!(f, "JSON parse error: {e}"),
-            ImportError::UnsupportedVersion(v) => {
-                write!(f, "Unsupported export version: {v}")
-            }
-        }
-    }
-}
-
-impl std::error::Error for ImportError {}
 
 #[cfg(test)]
 mod tests {

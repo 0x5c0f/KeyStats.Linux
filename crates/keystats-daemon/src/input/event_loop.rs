@@ -7,6 +7,9 @@ use super::device::{DeviceKind, InputDevice};
 use super::keymap;
 use crate::stats::manager::{StatsManager, lock_stats};
 
+/// Polling interval for non-blocking device reads (~125 Hz).
+const POLL_INTERVAL: Duration = Duration::from_millis(8);
+
 /// Process a batch of events from one device, calling the appropriate
 /// StatsManager recording methods. Returns the number of events processed.
 fn process_device(device: &mut InputDevice, stats: &mut StatsManager) -> usize {
@@ -112,23 +115,22 @@ pub fn run(stats: Arc<Mutex<StatsManager>>) -> ! {
     tracing::info!(
         "Event loop started with {} devices ({} keyboard, {} pointer)",
         devices.len(),
-        devices
-            .iter()
-            .filter(|d| matches!(d.kind, DeviceKind::Keyboard))
-            .count(),
+        devices.iter().filter(|d| matches!(d.kind, DeviceKind::Keyboard)).count(),
         devices
             .iter()
             .filter(|d| matches!(d.kind, DeviceKind::Pointer | DeviceKind::KeyboardPointer))
             .count()
     );
 
-    let poll_interval = Duration::from_millis(8); // ~125 Hz
+    let poll_interval = POLL_INTERVAL;
     let mut last_rescan = std::time::Instant::now();
 
     loop {
         let mut total = 0usize;
         {
-            let Some(mut mgr) = lock_stats(&stats) else { continue; };
+            let Some(mut mgr) = lock_stats(&stats) else {
+                continue;
+            };
             for device in &mut devices {
                 total += process_device(device, &mut mgr);
             }

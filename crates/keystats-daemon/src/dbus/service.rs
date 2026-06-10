@@ -45,85 +45,46 @@ impl KeyStatsService {
 #[interface(name = "io.github.x0x5c0f.KeyStats1")]
 impl KeyStatsService {
     fn get_today_stats(&self) -> HashMap<String, zbus::zvariant::Value<'static>> {
-        let Some(mgr) = lock_stats(&self.stats) else { return HashMap::new(); };
+        let Some(mgr) = lock_stats(&self.stats) else {
+            return HashMap::new();
+        };
         let s = mgr.snapshot();
         let mut stats = HashMap::new();
-        stats.insert(
-            "date".into(),
-            zbus::zvariant::Value::Str(s.date.clone().into()),
-        );
-        stats.insert(
-            "keyPresses".into(),
-            zbus::zvariant::Value::U64(s.key_presses),
-        );
-        stats.insert(
-            "leftClicks".into(),
-            zbus::zvariant::Value::U64(s.left_clicks),
-        );
-        stats.insert(
-            "middleClicks".into(),
-            zbus::zvariant::Value::U64(s.middle_clicks),
-        );
-        stats.insert(
-            "rightClicks".into(),
-            zbus::zvariant::Value::U64(s.right_clicks),
-        );
-        stats.insert(
-            "sideBackClicks".into(),
-            zbus::zvariant::Value::U64(s.side_back_clicks),
-        );
-        stats.insert(
-            "sideForwardClicks".into(),
-            zbus::zvariant::Value::U64(s.side_forward_clicks),
-        );
-        stats.insert(
-            "totalClicks".into(),
-            zbus::zvariant::Value::U64(s.total_clicks()),
-        );
-        stats.insert(
-            "mouseDistance".into(),
-            zbus::zvariant::Value::F64(s.mouse_distance),
-        );
-        stats.insert(
-            "scrollDistance".into(),
-            zbus::zvariant::Value::F64(s.scroll_distance),
-        );
-        stats.insert(
-            "currentKPS".into(),
-            zbus::zvariant::Value::U32(s.current_kps),
-        );
-        stats.insert(
-            "currentCPS".into(),
-            zbus::zvariant::Value::U32(s.current_cps),
-        );
+        stats.insert("date".into(), zbus::zvariant::Value::Str(s.date.clone().into()));
+        stats.insert("keyPresses".into(), zbus::zvariant::Value::U64(s.key_presses));
+        stats.insert("leftClicks".into(), zbus::zvariant::Value::U64(s.left_clicks));
+        stats.insert("middleClicks".into(), zbus::zvariant::Value::U64(s.middle_clicks));
+        stats.insert("rightClicks".into(), zbus::zvariant::Value::U64(s.right_clicks));
+        stats.insert("sideBackClicks".into(), zbus::zvariant::Value::U64(s.side_back_clicks));
+        stats.insert("sideForwardClicks".into(), zbus::zvariant::Value::U64(s.side_forward_clicks));
+        stats.insert("totalClicks".into(), zbus::zvariant::Value::U64(s.total_clicks()));
+        stats.insert("mouseDistance".into(), zbus::zvariant::Value::F64(s.mouse_distance));
+        stats.insert("scrollDistance".into(), zbus::zvariant::Value::F64(s.scroll_distance));
+        stats.insert("currentKPS".into(), zbus::zvariant::Value::U32(s.current_kps));
+        stats.insert("currentCPS".into(), zbus::zvariant::Value::U32(s.current_cps));
         stats.insert("peakKPS".into(), zbus::zvariant::Value::U32(s.peak_kps));
         stats.insert("peakCPS".into(), zbus::zvariant::Value::U32(s.peak_cps));
-        stats.insert(
-            "updatedAt".into(),
-            zbus::zvariant::Value::Str(s.updated_at.clone().into()),
-        );
+        stats.insert("updatedAt".into(), zbus::zvariant::Value::Str(s.updated_at.clone().into()));
         stats
     }
 
     fn get_rates(&self) -> HashMap<String, zbus::zvariant::Value<'static>> {
-        let Some(mgr) = lock_stats(&self.stats) else { return HashMap::new(); };
+        let Some(mgr) = lock_stats(&self.stats) else {
+            return HashMap::new();
+        };
         let r = mgr.rates();
         let mut rates = HashMap::new();
-        rates.insert(
-            "currentKPS".into(),
-            zbus::zvariant::Value::U32(r.current_kps),
-        );
-        rates.insert(
-            "currentCPS".into(),
-            zbus::zvariant::Value::U32(r.current_cps),
-        );
+        rates.insert("currentKPS".into(), zbus::zvariant::Value::U32(r.current_kps));
+        rates.insert("currentCPS".into(), zbus::zvariant::Value::U32(r.current_cps));
         rates.insert("peakKPS".into(), zbus::zvariant::Value::U32(r.peak_kps));
         rates.insert("peakCPS".into(), zbus::zvariant::Value::U32(r.peak_cps));
         rates
     }
 
     fn get_history(&self, days: u32) -> String {
-        let Some(mgr) = lock_stats(&self.stats) else { return String::new(); };
+        let Some(mgr) = lock_stats(&self.stats) else {
+            return String::new();
+        };
         match mgr.history(days) {
             Ok(history) => serde_json::to_string(&history).unwrap_or_default(),
             Err(e) => format!(r#"{{"error":"{}"}}"#, e),
@@ -136,7 +97,9 @@ impl KeyStatsService {
     }
 
     fn get_top_keys(&self, limit: u32) -> String {
-        let Some(mgr) = lock_stats(&self.stats) else { return String::new(); };
+        let Some(mgr) = lock_stats(&self.stats) else {
+            return String::new();
+        };
         match mgr.top_keys(limit) {
             Ok(keys) => serde_json::to_string(&keys).unwrap_or_default(),
             Err(e) => format!(r#"{{"error":"{}"}}"#, e),
@@ -144,7 +107,9 @@ impl KeyStatsService {
     }
 
     fn get_top_keys_for_date(&self, date: &str, limit: u32) -> String {
-        let Some(mgr) = lock_stats(&self.stats) else { return String::new(); };
+        let Some(mgr) = lock_stats(&self.stats) else {
+            return String::new();
+        };
         match mgr.top_keys_for_date(date, limit) {
             Ok(keys) => serde_json::to_string(&keys).unwrap_or_default(),
             Err(e) => format!(r#"{{"error":"{}"}}"#, e),
@@ -152,19 +117,25 @@ impl KeyStatsService {
     }
 
     fn reset_today(&self) -> bool {
-        let Some(mut mgr) = lock_stats(&self.stats) else { return false; };
+        let Some(mut mgr) = lock_stats(&self.stats) else {
+            return false;
+        };
         mgr.reset_today();
         true
     }
 
     fn clear_all_data(&self) -> bool {
-        let Some(mut mgr) = lock_stats(&self.stats) else { return false; };
+        let Some(mut mgr) = lock_stats(&self.stats) else {
+            return false;
+        };
         mgr.clear_all_data();
         true
     }
 
     fn export_data(&self) -> String {
-        let Some(mgr) = lock_stats(&self.stats) else { return String::new(); };
+        let Some(mgr) = lock_stats(&self.stats) else {
+            return String::new();
+        };
         mgr.export_data().unwrap_or_default()
     }
 
@@ -173,7 +144,9 @@ impl KeyStatsService {
             "overwrite" => ImportMode::Overwrite,
             _ => ImportMode::Merge,
         };
-        let Some(mut mgr) = lock_stats(&self.stats) else { return false; };
+        let Some(mut mgr) = lock_stats(&self.stats) else {
+            return false;
+        };
         mgr.import_data(json, import_mode).is_ok()
     }
 

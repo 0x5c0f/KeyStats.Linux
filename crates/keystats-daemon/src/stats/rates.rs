@@ -2,17 +2,14 @@ use std::collections::VecDeque;
 use std::time::Instant;
 
 /// 1-second sliding window rate tracker.
-#[allow(dead_code)]
 pub struct RateTracker {
     window: VecDeque<Instant>,
 }
 
-#[allow(dead_code)]
 impl RateTracker {
+    /// Create an empty tracker.
     pub fn new() -> Self {
-        Self {
-            window: VecDeque::new(),
-        }
+        Self { window: VecDeque::new() }
     }
 
     /// Record a single event at the current time.
@@ -30,11 +27,7 @@ impl RateTracker {
     }
 
     fn prune(&mut self, now: Instant) {
-        while self
-            .window
-            .front()
-            .is_some_and(|t| now.duration_since(*t).as_secs_f64() > 1.0)
-        {
+        while self.window.front().is_some_and(|t| now.duration_since(*t).as_secs_f64() > 1.0) {
             self.window.pop_front();
         }
     }

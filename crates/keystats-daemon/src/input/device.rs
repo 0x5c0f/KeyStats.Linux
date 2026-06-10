@@ -1,25 +1,33 @@
 use evdev::Device;
 
+/// Maximum event device nodes to scan (/dev/input/event0..63).
+const MAX_EVENT_DEVICES: u32 = 64;
+
 /// Known device types for event pipeline routing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DeviceKind {
+    /// Keyboard-only input device.
     Keyboard,
+    /// Mouse or touchpad (relative axes).
     Pointer,
-    /// Device has both key and relative capabilities
+    /// Device has both key and relative capabilities.
     KeyboardPointer,
+    /// Other input device (buttons, etc.).
     Other,
 }
 
 /// Wrapper around an evdev Device with classification info.
-#[allow(dead_code)]
 pub struct InputDevice {
+    #[allow(dead_code)] // part of public API, used by consumers
     pub path: String,
+    #[allow(dead_code)] // part of public API, used by consumers
     pub name: String,
     pub kind: DeviceKind,
     pub device: Device,
 }
 
 impl InputDevice {
+    /// Open a device node, returning `None` for `PermissionDenied` or `NotFound`.
     pub fn open(path: &str) -> Result<Option<Self>, std::io::Error> {
         let device = match Device::open(path) {
             Ok(d) => d,
@@ -33,10 +41,7 @@ impl InputDevice {
 
         let has_keys = caps.contains(evdev::EventType::KEY);
         let has_relative = caps.contains(evdev::EventType::RELATIVE);
-        let key_count = device
-            .supported_keys()
-            .map(|k| k.iter().count())
-            .unwrap_or(0);
+        let key_count = device.supported_keys().map(|k| k.iter().count()).unwrap_or(0);
 
         // Filters: skip devices that can't contribute to our metrics
         if !has_keys && !has_relative {
@@ -54,12 +59,7 @@ impl InputDevice {
         // Set non-blocking for event loop
         device.set_nonblocking(true).ok();
 
-        Ok(Some(Self {
-            path: path.to_string(),
-            name,
-            kind,
-            device,
-        }))
+        Ok(Some(Self { path: path.to_string(), name, kind, device }))
     }
 
     /// Scan all /dev/input/event* nodes and return classified devices.
@@ -67,7 +67,7 @@ impl InputDevice {
         let mut devices = Vec::new();
         let mut blocked = Vec::new();
 
-        for i in 0..64 {
+        for i in 0..MAX_EVENT_DEVICES {
             let path = format!("/dev/input/event{}", i);
             match Self::open(&path) {
                 Ok(Some(d)) => devices.push(d),
@@ -105,18 +105,12 @@ mod tests {
     fn discover_finds_devices() {
         let (devices, _blocked) = InputDevice::discover();
         // On a real Linux desktop, there should be at least a keyboard
-        let keyboard_count = devices
-            .iter()
-            .filter(|d| d.kind == DeviceKind::Keyboard)
-            .count();
+        let keyboard_count = devices.iter().filter(|d| d.kind == DeviceKind::Keyboard).count();
         let pointer_count = devices
             .iter()
             .filter(|d| d.kind == DeviceKind::Pointer || d.kind == DeviceKind::KeyboardPointer)
             .count();
         // At minimum we expect something on a real system
-        eprintln!(
-            "Discovered {} keyboards, {} pointers",
-            keyboard_count, pointer_count
-        );
+        eprintln!("Discovered {} keyboards, {} pointers", keyboard_count, pointer_count);
     }
 }

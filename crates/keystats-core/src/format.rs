@@ -7,12 +7,9 @@ pub fn format_count(n: u64) -> String {
     }
 }
 
+/// Compact distance formatting with K suffix for values ≥ 1000.
 pub fn format_distance(d: f64) -> String {
-    if d >= 1000.0 {
-        format!("{:.1}K", d / 1000.0)
-    } else {
-        format!("{:.0}", d)
-    }
+    if d >= 1000.0 { format!("{:.1}K", d / 1000.0) } else { format!("{:.0}", d) }
 }
 
 #[cfg(test)]

@@ -5,7 +5,11 @@ use keystats_core::{DailyStats, RatesSnapshot};
 use super::rates::RateTracker;
 use crate::db;
 
-#[allow(dead_code)]
+/// Central stats accumulator that owns the database connection and in-memory counters.
+///
+/// All input events flow through `StatsManager`, which batches key counts in memory
+/// and flushes them to SQLite at a configurable interval. Midnight rollover is handled
+/// automatically via [`check_midnight`](Self::check_midnight).
 pub struct StatsManager {
     db: rusqlite::Connection,
     today: String,
@@ -18,13 +22,14 @@ pub struct StatsManager {
     pending_keys: std::collections::HashMap<String, u64>,
 }
 
-#[allow(dead_code)]
 impl StatsManager {
+    /// Create a new manager using the default database path.
     pub fn new() -> Result<Self, rusqlite::Error> {
         let db = db::open()?;
         Self::new_with_conn(db)
     }
 
+    /// Create a new manager with an existing database connection.
     pub fn new_with_conn(conn: rusqlite::Connection) -> Result<Self, rusqlite::Error> {
         let today = chrono::Local::now().format("%Y-%m-%d").to_string();
 
@@ -68,6 +73,7 @@ impl StatsManager {
         }
     }
 
+    /// Record a key press event. If `track_breakdown` is true, the per-key count is buffered.
     pub fn record_key_press(&mut self, key_name: &str, track_breakdown: bool) {
         self.check_midnight();
         self.stats.key_presses += 1;
@@ -79,6 +85,7 @@ impl StatsManager {
         self.maybe_flush();
     }
 
+    /// Record a mouse button click by role (`"left"`, `"right"`, `"middle"`, etc.).
     pub fn record_click(&mut self, button_role: &str) {
         self.check_midnight();
         match button_role {
@@ -94,6 +101,7 @@ impl StatsManager {
         self.maybe_flush();
     }
 
+    /// Accumulate relative mouse movement (dx, dy in device units).
     pub fn add_mouse_distance(&mut self, dx: f64, dy: f64) {
         self.check_midnight();
         self.mouse_coalesce.0 += dx;
@@ -102,6 +110,7 @@ impl StatsManager {
         self.maybe_flush();
     }
 
+    /// Accumulate scroll wheel distance (absolute value).
     pub fn add_scroll_distance(&mut self, delta: f64) {
         self.check_midnight();
         self.stats.scroll_distance += delta.abs();
@@ -129,22 +138,29 @@ impl StatsManager {
         }
         if !self.pending_keys.is_empty() {
             match db::schema::batch_incr_key_counts(&mut self.db, &self.today, &self.pending_keys) {
-                Ok(()) => { self.pending_keys.clear(); }
-                Err(e) => { tracing::warn!("Failed to flush key counts: {}", e); }
+                Ok(()) => {
+                    self.pending_keys.clear();
+                }
+                Err(e) => {
+                    tracing::warn!("Failed to flush key counts: {}", e);
+                }
             }
         }
     }
 
+    #[allow(dead_code)] // used in tests
     pub fn force_flush(&mut self) {
         self.flush_to_db();
     }
 
     // --- Queries ---
 
+    /// Borrow the current day's accumulated stats.
     pub fn snapshot(&self) -> &DailyStats {
         &self.stats
     }
 
+    /// Snapshot of current and peak rates (KPS/CPS).
     pub fn rates(&self) -> RatesSnapshot {
         RatesSnapshot {
             current_kps: self.stats.current_kps,
@@ -154,17 +170,20 @@ impl StatsManager {
         }
     }
 
+    /// Load the last `days` days of stats from the database (newest first).
     pub fn history(&self, days: u32) -> Result<Vec<DailyStats>, rusqlite::Error> {
         db::schema::load_history(&self.db, days)
     }
 
     // --- Import / Export / Reset ---
 
+    /// Export today's stats and up to 365 days of history as JSON.
     pub fn export_data(&self) -> Result<String, serde_json::Error> {
         let history = db::schema::load_history(&self.db, 365).unwrap_or_default();
         keystats_core::export_to_json(self.stats.clone(), history)
     }
 
+    /// Import stats from JSON, either overwriting or merging with existing data.
     pub fn import_data(
         &mut self,
         json: &str,
@@ -198,6 +217,7 @@ impl StatsManager {
         Ok(())
     }
 
+    /// Reset all of today's stats to zero and clear key breakdown data.
     pub fn reset_today(&mut self) {
         self.stats = DailyStats::today();
         self.kps_tracker = RateTracker::new();
@@ -209,11 +229,17 @@ impl StatsManager {
         self.flush_to_db();
     }
 
+    /// Get the most-pressed keys for today, up to `limit` entries.
     pub fn top_keys(&self, limit: u32) -> Result<Vec<keystats_core::KeyCount>, rusqlite::Error> {
         db::schema::top_keys(&self.db, &self.today, limit)
     }
 
-    pub fn top_keys_for_date(&self, date: &str, limit: u32) -> Result<Vec<keystats_core::KeyCount>, rusqlite::Error> {
+    /// Get the most-pressed keys for a specific date, up to `limit` entries.
+    pub fn top_keys_for_date(
+        &self,
+        date: &str,
+        limit: u32,
+    ) -> Result<Vec<keystats_core::KeyCount>, rusqlite::Error> {
         db::schema::top_keys(&self.db, date, limit)
     }
 
@@ -296,8 +322,7 @@ mod tests {
     fn import_overwrite_replaces_stats() {
         let mut mgr = test_mgr();
         let json = r#"{"version":1,"exported_at":"2026-05-26T00:00:00","today":{"date":"2026-05-26","key_presses":999,"left_clicks":100,"middle_clicks":0,"right_clicks":50,"side_back_clicks":0,"side_forward_clicks":0,"mouse_distance":0.0,"scroll_distance":0.0,"peak_kps":0,"peak_cps":0,"updated_at":"2026-05-26T00:00:00"},"history":[]}"#;
-        mgr.import_data(json, keystats_core::ImportMode::Overwrite)
-            .unwrap();
+        mgr.import_data(json, keystats_core::ImportMode::Overwrite).unwrap();
         assert_eq!(mgr.snapshot().key_presses, 999);
         assert_eq!(mgr.snapshot().left_clicks, 100);
     }
@@ -308,8 +333,7 @@ mod tests {
         mgr.record_key_press("A", true);
         mgr.record_key_press("B", true);
         let json = r#"{"version":1,"exported_at":"2026-05-26T00:00:00","today":{"date":"2026-05-26","key_presses":10,"left_clicks":5,"middle_clicks":0,"right_clicks":3,"side_back_clicks":0,"side_forward_clicks":0,"mouse_distance":0.0,"scroll_distance":0.0,"peak_kps":0,"peak_cps":0,"updated_at":"2026-05-26T00:00:00"},"history":[]}"#;
-        mgr.import_data(json, keystats_core::ImportMode::Merge)
-            .unwrap();
+        mgr.import_data(json, keystats_core::ImportMode::Merge).unwrap();
         assert_eq!(mgr.snapshot().key_presses, 12); // 2 + 10
         assert_eq!(mgr.snapshot().left_clicks, 5);
     }
