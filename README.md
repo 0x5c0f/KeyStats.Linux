@@ -139,6 +139,10 @@ Runtime dependency: `libgtk-4` (pre-installed on most GNOME desktops).
 
 For detailed installation options, permissions troubleshooting, and packaging instructions, see [packaging/README.md](packaging/README.md).
 
+## Known Issues
+
+- **Overlay blocks mouse input**: The keystroke overlay window (`keystats-overlay`) captures mouse events in the area it covers. Clicks on windows behind the overlay will not pass through. Workaround: position the overlay in a non-critical screen area using `--position`.
+
 ## Project Structure
 
 ```

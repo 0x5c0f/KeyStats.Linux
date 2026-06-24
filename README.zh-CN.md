@@ -139,6 +139,10 @@ keystats-overlay --position bottom-right --opacity 30 --fade-duration 1000
 
 更多安装选项、权限排查和打包说明详见 [packaging/README.zh-CN.md](packaging/README.zh-CN.md)。
 
+## 已知问题
+
+- **悬浮层遮挡鼠标点击**：按键悬浮层（`keystats-overlay`）会捕获其覆盖区域的鼠标事件，点击悬浮层后面的窗口将无法响应。临时解决方案：使用 `--position` 参数将悬浮层放置在非关键屏幕区域。
+
 ## 项目结构
 
 ```
