@@ -63,6 +63,35 @@ impl ModifierState {
         }
     }
 
+    /// Build a modifier-only combo name from all currently held modifiers.
+    /// Used when a modifier is pressed while other modifiers are held.
+    /// E.g. Ctrl+Shift pressed together → "Ctrl+Shift".
+    fn modifier_combo_name(&self) -> String {
+        let mut parts = Vec::new();
+        if self.ctrl {
+            parts.push("Ctrl");
+        }
+        if self.shift {
+            parts.push("Shift");
+        }
+        if self.alt {
+            parts.push("Alt");
+        }
+        if self.meta {
+            parts.push("Super");
+        }
+        parts.join("+")
+    }
+
+    /// Returns `true` if two or more modifiers are currently held.
+    fn multiple_modifiers_held(&self) -> bool {
+        let count = [self.ctrl, self.shift, self.alt, self.meta]
+            .iter()
+            .filter(|&&v| v)
+            .count();
+        count >= 2
+    }
+
     /// Returns `true` if any non-Shift modifier is currently held.
     fn combo_modifiers_held(&self) -> bool {
         self.ctrl || self.alt || self.meta
@@ -119,14 +148,18 @@ fn process_device(
                         } else {
                             match device.kind {
                                 DeviceKind::Keyboard | DeviceKind::KeyboardPointer => {
-                                    let base_name = if modifiers.shift {
+                                    let base_name = if modifiers.shift && !is_mod {
                                         keymap::shifted_key_name(code_u16)
                                             .map(String::from)
                                             .unwrap_or_else(|| keymap::key_name(code_u16))
                                     } else {
                                         keymap::key_name(code_u16)
                                     };
-                                    let name = if !is_mod && modifiers.combo_modifiers_held() {
+                                    let name = if is_mod && modifiers.multiple_modifiers_held() {
+                                        // Multiple modifiers held: show combo (e.g. "Ctrl+Shift")
+                                        modifiers.modifier_combo_name()
+                                    } else if !is_mod && modifiers.combo_modifiers_held() {
+                                        // Regular key with modifiers: show combo (e.g. "Ctrl+A")
                                         modifiers.combo_name(&base_name)
                                     } else {
                                         base_name

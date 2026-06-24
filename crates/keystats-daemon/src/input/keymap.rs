@@ -71,6 +71,7 @@ pub fn key_name(code: u16) -> String {
         57 => "Space",
         14 => "Backspace",
         15 => "Tab",
+        139 => "Menu",
         59 => "F1",
         60 => "F2",
         61 => "F3",
@@ -85,6 +86,48 @@ pub fn key_name(code: u16) -> String {
         88 => "F12",
         69 => "NumLock",
         70 => "ScrollLock",
+        99 => "PrtSc",      // KEY_SYSRQ
+        210 => "PrtSc",     // KEY_PRINT (ACPI Print)
+        119 => "Pause",
+        127 => "Compose",
+
+        // Media keys (common on laptops)
+        113 => "Mute",
+        114 => "VolDown",
+        115 => "VolUp",
+        116 => "Power",
+        142 => "Sleep",
+        143 => "WakeUp",
+        150 => "WWW",
+        155 => "Mail",
+        156 => "Bookmarks",
+        157 => "Computer",
+        158 => "Back",
+        159 => "Forward",
+        163 => "NextSong",
+        164 => "PlayPause",
+        165 => "PrevSong",
+        166 => "StopCD",
+        167 => "Record",
+        168 => "Rewind",
+        171 => "Config",
+        172 => "HomePage",
+        173 => "Refresh",
+        174 => "Exit",
+
+        // Function keys (F13-F24)
+        183 => "F13",
+        184 => "F14",
+        185 => "F15",
+        186 => "F16",
+        187 => "F17",
+        188 => "F18",
+        189 => "F19",
+        190 => "F20",
+        191 => "F21",
+        192 => "F22",
+        193 => "F23",
+        194 => "F24",
 
         // Numpad
         71 => "Num7",
@@ -227,6 +270,14 @@ mod tests {
         assert_eq!(key_name(57), "Space");
         assert_eq!(key_name(28), "Enter");
         assert_eq!(key_name(1), "Escape");
+        // PrtSc variants
+        assert_eq!(key_name(99), "PrtSc");   // KEY_SYSRQ
+        assert_eq!(key_name(210), "PrtSc");  // KEY_PRINT
+        // Media keys
+        assert_eq!(key_name(113), "Mute");
+        assert_eq!(key_name(114), "VolDown");
+        assert_eq!(key_name(115), "VolUp");
+        assert_eq!(key_name(164), "PlayPause");
     }
 
     #[test]
