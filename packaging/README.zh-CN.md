@@ -7,7 +7,7 @@
 ```
 KeyStats.Linux/                    ← 仓库根目录（你在这里）
 ├── Cargo.toml                     ← Rust workspace
-├── crates/ (keystats-core, keystats-daemon, keystatsctl)
+├── crates/ (keystats-core, keystats-daemon, keystatsctl, keystats-overlay)
 ├── gnome-extension/               ← GNOME 扩展源码
 ├── packaging/ (systemd, udev)
 └── ...
@@ -46,24 +46,28 @@ cargo run -p keystatsctl -- doctor
 
 # 检查守护进程统计
 cargo run -p keystatsctl -- status
+
+# 构建并运行悬浮层（需要 libgtk-4-dev）
+cargo run -p keystats-overlay -- --help
 ```
 
 ---
 
 ## 安装
 
-### 1. 构建并安装守护进程 + CLI
+### 1. 构建并安装守护进程 + CLI + 悬浮层
 
 ```bash
 cd KeyStats.Linux
 
-# Release 构建
-cargo build --release -p keystats-daemon -p keystatsctl
+# Release 构建（悬浮层需要 libgtk-4-dev）
+cargo build --release
 
 # 安装到 ~/.local/bin
 mkdir -p ~/.local/bin
 cp target/release/keystats-daemon ~/.local/bin/
 cp target/release/keystatsctl ~/.local/bin/
+cp target/release/keystats-overlay ~/.local/bin/
 
 # 确保 ~/.local/bin 在 PATH 中
 export PATH="$HOME/.local/bin:$PATH"
@@ -74,11 +78,15 @@ export PATH="$HOME/.local/bin:$PATH"
 ```bash
 mkdir -p ~/.config/systemd/user
 cp KeyStats.Linux/packaging/systemd/keystats.service ~/.config/systemd/user/
+cp KeyStats.Linux/packaging/systemd/keystats-overlay.service ~/.config/systemd/user/
 systemctl --user daemon-reload
 systemctl --user enable --now keystats.service
 
 # 验证
 systemctl --user status keystats.service
+
+# 可选：开机自启悬浮层
+systemctl --user enable --now keystats-overlay.service
 ```
 
 ### 3. 安装 GNOME Shell 扩展
@@ -134,14 +142,16 @@ keystatsctl status       # 检查守护进程统计
 ```bash
 cd KeyStats.Linux
 
-# 构建 release 二进制
-cargo build --release -p keystats-daemon -p keystatsctl
+# 构建 release 二进制（悬浮层需要 libgtk-4-dev）
+cargo build --release
 
 # 组装 tarball
 mkdir -p dist
 cp target/release/keystats-daemon dist/
 cp target/release/keystatsctl dist/
+cp target/release/keystats-overlay dist/
 cp packaging/systemd/keystats.service dist/
+cp packaging/systemd/keystats-overlay.service dist/
 cp packaging/udev/60-keystats-input.rules dist/
 cd dist && tar -czf ../keystats-linux-x86_64.tar.gz *
 # tarball 位置：KeyStats.Linux/keystats-linux-x86_64.tar.gz
@@ -212,10 +222,12 @@ sudo udevadm trigger
 ## 卸载
 
 ```bash
-# 守护进程
+# 守护进程 + 悬浮层
 systemctl --user disable --now keystats.service
+systemctl --user disable --now keystats-overlay.service 2>/dev/null
 rm ~/.config/systemd/user/keystats.service
-rm ~/.local/bin/keystats-daemon ~/.local/bin/keystatsctl
+rm ~/.config/systemd/user/keystats-overlay.service
+rm ~/.local/bin/keystats-daemon ~/.local/bin/keystatsctl ~/.local/bin/keystats-overlay
 
 # GNOME 扩展
 gnome-extensions uninstall keystats@0x5c0f.github.io
@@ -235,7 +247,9 @@ sudo rm /etc/udev/rules.d/60-keystats-input.rules
 |------|------|
 | 守护进程二进制 | `~/.local/bin/keystats-daemon` |
 | CLI 二进制 | `~/.local/bin/keystatsctl` |
+| 悬浮层二进制 | `~/.local/bin/keystats-overlay` |
 | systemd 服务 | `~/.config/systemd/user/keystats.service` |
+| 悬浮层 systemd 服务 | `~/.config/systemd/user/keystats-overlay.service` |
 | GNOME 扩展 | `~/.local/share/gnome-shell/extensions/keystats@0x5c0f.github.io/` |
 | 统计数据库 | `~/.local/state/keystats/stats.sqlite3` |
 | tarball（构建后） | `KeyStats.Linux/keystats-linux-x86_64.tar.gz` |

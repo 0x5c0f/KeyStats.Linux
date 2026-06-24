@@ -7,7 +7,7 @@ All commands assume you are in the **repository root**. Paths are relative to th
 ```
 KeyStats.Linux/                    ← you are here (repository root)
 ├── Cargo.toml                     ← Rust workspace
-├── crates/ (keystats-core, keystats-daemon, keystatsctl)
+├── crates/ (keystats-core, keystats-daemon, keystatsctl, keystats-overlay)
 ├── gnome-extension/               ← GNOME extension source
 ├── packaging/ (systemd, udev)
 └── ...
@@ -46,24 +46,28 @@ cargo run -p keystatsctl -- doctor
 
 # Check daemon stats
 cargo run -p keystatsctl -- status
+
+# Build and run overlay (requires libgtk-4-dev)
+cargo run -p keystats-overlay -- --help
 ```
 
 ---
 
 ## Installation
 
-### 1. Build and install daemon + CLI
+### 1. Build and install daemon + CLI + overlay
 
 ```bash
 cd KeyStats.Linux
 
-# Release build
-cargo build --release -p keystats-daemon -p keystatsctl
+# Release build (requires libgtk-4-dev for overlay)
+cargo build --release
 
 # Install to ~/.local/bin
 mkdir -p ~/.local/bin
 cp target/release/keystats-daemon ~/.local/bin/
 cp target/release/keystatsctl ~/.local/bin/
+cp target/release/keystats-overlay ~/.local/bin/
 
 # Ensure ~/.local/bin is on PATH
 export PATH="$HOME/.local/bin:$PATH"
@@ -74,11 +78,15 @@ export PATH="$HOME/.local/bin:$PATH"
 ```bash
 mkdir -p ~/.config/systemd/user
 cp KeyStats.Linux/packaging/systemd/keystats.service ~/.config/systemd/user/
+cp KeyStats.Linux/packaging/systemd/keystats-overlay.service ~/.config/systemd/user/
 systemctl --user daemon-reload
 systemctl --user enable --now keystats.service
 
 # Verify
 systemctl --user status keystats.service
+
+# Optional: auto-start overlay with session
+systemctl --user enable --now keystats-overlay.service
 ```
 
 ### 3. Install GNOME Shell extension
@@ -134,14 +142,16 @@ All packaging commands run from the **repo root**.
 ```bash
 cd KeyStats.Linux
 
-# Build release binaries
-cargo build --release -p keystats-daemon -p keystatsctl
+# Build release binaries (requires libgtk-4-dev for overlay)
+cargo build --release
 
 # Assemble tarball
 mkdir -p dist
 cp target/release/keystats-daemon dist/
 cp target/release/keystatsctl dist/
+cp target/release/keystats-overlay dist/
 cp packaging/systemd/keystats.service dist/
+cp packaging/systemd/keystats-overlay.service dist/
 cp packaging/udev/60-keystats-input.rules dist/
 cd dist && tar -czf ../keystats-linux-x86_64.tar.gz *
 # Tarball at: KeyStats.Linux/keystats-linux-x86_64.tar.gz
@@ -212,10 +222,12 @@ sudo udevadm trigger
 ## Uninstall
 
 ```bash
-# Daemon
+# Daemon + overlay
 systemctl --user disable --now keystats.service
+systemctl --user disable --now keystats-overlay.service 2>/dev/null
 rm ~/.config/systemd/user/keystats.service
-rm ~/.local/bin/keystats-daemon ~/.local/bin/keystatsctl
+rm ~/.config/systemd/user/keystats-overlay.service
+rm ~/.local/bin/keystats-daemon ~/.local/bin/keystatsctl ~/.local/bin/keystats-overlay
 
 # GNOME extension
 gnome-extensions uninstall keystats@0x5c0f.github.io
@@ -235,7 +247,9 @@ sudo rm /etc/udev/rules.d/60-keystats-input.rules
 |------|-------|
 | Daemon binary | `~/.local/bin/keystats-daemon` |
 | CLI binary | `~/.local/bin/keystatsctl` |
+| Overlay binary | `~/.local/bin/keystats-overlay` |
 | systemd service | `~/.config/systemd/user/keystats.service` |
+| Overlay systemd service | `~/.config/systemd/user/keystats-overlay.service` |
 | GNOME extension | `~/.local/share/gnome-shell/extensions/keystats@0x5c0f.github.io/` |
 | Stats database | `~/.local/state/keystats/stats.sqlite3` |
 | Tarball (after build) | `KeyStats.Linux/keystats-linux-x86_64.tar.gz` |

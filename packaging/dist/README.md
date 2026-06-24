@@ -12,6 +12,8 @@ sudo usermod -aG input $USER
 # Log out and back in for the change to take effect
 ```
 
+- `libgtk-4` (required by keystats-overlay, pre-installed on most GNOME desktops)
+
 ## Install
 
 ```bash
@@ -19,8 +21,8 @@ make install
 ```
 
 This installs:
-- `keystats-daemon` and `keystatsctl` to `~/.local/bin/`
-- systemd user service to `~/.config/systemd/user/`
+- `keystats-daemon`, `keystatsctl`, and `keystats-overlay` to `~/.local/bin/`
+- systemd user services to `~/.config/systemd/user/`
 
 ## Enable the Daemon
 

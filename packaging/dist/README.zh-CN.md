@@ -12,6 +12,8 @@ sudo usermod -aG input $USER
 # 需要重新登录才能生效
 ```
 
+- `libgtk-4`（keystats-overlay 运行时依赖，大多数 GNOME 桌面已预装）
+
 ## 安装
 
 ```bash
@@ -19,7 +21,7 @@ make install
 ```
 
 安装内容：
-- `keystats-daemon` 和 `keystatsctl` → `~/.local/bin/`
+- `keystats-daemon`、`keystatsctl`、`keystats-overlay` → `~/.local/bin/`
 - systemd 用户服务 → `~/.config/systemd/user/`
 
 ## 启动守护进程

@@ -69,6 +69,7 @@ Inspired by [KeyStats](https://github.com/debugtheworldbot/KeyStats) (macOS &amp
 - **input** group membership: `sudo usermod -aG input $USER` (log out/in after)
 - **gettext** (for locale compilation)
 - **glib2** (for `glib-compile-schemas`)
+- **libgtk-4-dev** (overlay only, for building keystroke overlay)
 
 ### Build & Install
 
@@ -129,6 +130,8 @@ keystats-overlay
 # Customize position and appearance
 keystats-overlay --position bottom-right --opacity 30 --fade-duration 1000
 ```
+
+Runtime dependency: `libgtk-4` (pre-installed on most GNOME desktops).
 
 For detailed installation options, permissions troubleshooting, and packaging instructions, see [packaging/README.md](packaging/README.md).
 

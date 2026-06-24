@@ -22,7 +22,18 @@
 │  • 偏好设置窗口        │                         │  • 统计管理器       │
 └──────────────────────┘                         └─────────┬───────────┘
                                                            │
+                                                 D-Bus 信号
+                                                           │
                                                  ┌─────────▼───────────┐
+                                                 │  keystats-overlay    │
+                                                 │  (GTK4 按键悬浮层)   │
+                                                 │                      │
+                                                 │  • 实时按键显示       │
+                                                 │  • 淡出动画          │
+                                                 │  • X11/Wayland       │
+                                                 └──────────────────────┘
+
+                                                 ┌──────────────────────┐
                                                  │    keystatsctl       │
                                                  │    (命令行工具)       │
                                                  │                      │
@@ -33,6 +44,7 @@
 
 - **keystats-daemon** — 通过 evdev 读取 `/dev/input/event*`，聚合隐私安全的统计数据，持久化到 SQLite，暴露 D-Bus API
 - **GNOME Shell 扩展** — 面板指示器 + 弹出面板 + 偏好设置，通过 D-Bus 消费 daemon 数据
+- **keystats-overlay** — 独立按键可视化悬浮层，适用于屏幕录制/直播，订阅 daemon 的 D-Bus 信号
 - **keystatsctl** — 诊断和状态查询的命令行工具
 
 ## 功能
@@ -43,6 +55,7 @@
 - KPS/CPS 实时速率显示，含峰值追踪
 - 7 天历史记录，含每日柱状图（GNOME Shell 弹出面板）
 - `keystatsctl history` — 终端柱状图，支持自定义天数范围
+- **按键悬浮层** — 实时按键可视化，带淡出动画（适用于屏幕录制/直播）
 - 系统主题自适应（深色/浅色）
 - 国际化支持（英文 + 简体中文）
 - 定时设备重扫描，处理 USB/蓝牙热插拔
@@ -56,6 +69,7 @@
 - **input** 用户组权限：`sudo usermod -aG input $USER`（执行后重新登录）
 - **gettext**（用于语言包编译）
 - **glib2**（用于 `glib-compile-schemas`）
+- **libgtk-4-dev**（仅 overlay 需要，用于构建按键悬浮层）
 
 ### 构建和安装
 
@@ -102,6 +116,23 @@ keystatsctl keys                 # 今日按键统计
 keystatsctl keys --date 2026-06-01 --limit 10
 ```
 
+### 按键悬浮层（可选）
+
+悬浮层用于屏幕录制或直播时显示实时按键：
+
+```bash
+# 安装悬浮层
+make install-overlay
+
+# 运行（默认：左上角，800ms 淡出）
+keystats-overlay
+
+# 自定义位置和外观
+keystats-overlay --position bottom-right --opacity 30 --fade-duration 1000
+```
+
+运行时依赖：`libgtk-4`（大多数 GNOME 桌面已预装）。
+
 更多安装选项、权限排查和打包说明详见 [packaging/README.zh-CN.md](packaging/README.zh-CN.md)。
 
 ## 项目结构
@@ -113,7 +144,8 @@ KeyStats.Linux/
 ├── crates/
 │   ├── keystats-core/            ← 共享数据模型、格式化、导入导出
 │   ├── keystats-daemon/          ← evdev 输入管线、SQLite、D-Bus 服务
-│   └── keystatsctl/              ← CLI 诊断工具
+│   ├── keystatsctl/              ← CLI 诊断工具
+│   └── keystats-overlay/         ← GTK4 按键可视化悬浮层
 ├── gnome-extension/              ← GNOME Shell 扩展（GJS）
 │   ├── extension.js              ← 面板指示器 + 弹出面板 UI
 │   ├── prefs.js                  ← 偏好设置窗口（Adw/GTK4）
