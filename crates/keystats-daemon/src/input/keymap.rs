@@ -122,6 +122,89 @@ pub fn key_name(code: u16) -> String {
     .to_string()
 }
 
+/// Modifier key evdev codes (Shift, Ctrl, Alt, Meta).
+#[allow(dead_code)]
+const MODIFIER_CODES: [u16; 8] = [
+    42,  // LeftShift
+    54,  // RightShift
+    29,  // LeftControl
+    97,  // RightControl
+    56,  // LeftAlt
+    100, // RightAlt
+    125, // LeftMeta
+    126, // RightMeta
+];
+
+/// Shift key evdev codes.
+const SHIFT_CODES: [u16; 2] = [42, 54];
+
+/// Control key evdev codes.
+const CTRL_CODES: [u16; 2] = [29, 97];
+
+/// Alt key evdev codes.
+const ALT_CODES: [u16; 2] = [56, 100];
+
+/// Meta/Super key evdev codes.
+const META_CODES: [u16; 2] = [125, 126];
+
+/// Returns `true` if the key code is a modifier key.
+#[allow(dead_code)]
+pub fn is_modifier(code: u16) -> bool {
+    MODIFIER_CODES.contains(&code)
+}
+
+/// Returns `true` if the key code is a Shift key.
+pub fn is_shift(code: u16) -> bool {
+    SHIFT_CODES.contains(&code)
+}
+
+/// Returns `true` if the key code is a Control key.
+pub fn is_ctrl(code: u16) -> bool {
+    CTRL_CODES.contains(&code)
+}
+
+/// Returns `true` if the key code is an Alt key.
+pub fn is_alt(code: u16) -> bool {
+    ALT_CODES.contains(&code)
+}
+
+/// Returns `true` if the key code is a Meta/Super key.
+pub fn is_meta(code: u16) -> bool {
+    META_CODES.contains(&code)
+}
+
+/// Map evdev key codes to their Shift-modified display names.
+///
+/// Returns `None` if the key has no shifted variant.
+pub fn shifted_key_name(code: u16) -> Option<&'static str> {
+    match code {
+        // Numbers → symbols
+        2 => Some("!"),
+        3 => Some("@"),
+        4 => Some("#"),
+        5 => Some("$"),
+        6 => Some("%"),
+        7 => Some("^"),
+        8 => Some("&"),
+        9 => Some("*"),
+        10 => Some("("),
+        11 => Some(")"),
+        // Punctuation shifted
+        12 => Some("_"),  // -
+        13 => Some("+"),  // =
+        26 => Some("{"),  // [
+        27 => Some("}"),  // ]
+        39 => Some(":"),  // ;
+        40 => Some("\""), // '
+        41 => Some("~"),  // `
+        43 => Some("|"),  // \
+        51 => Some("<"),  // ,
+        52 => Some(">"),  // .
+        53 => Some("?"),  // /
+        _ => None,
+    }
+}
+
 /// Identify the button role for mouse button codes.
 pub fn button_role(code: u16) -> Option<&'static str> {
     match code {

@@ -114,6 +114,24 @@ pub struct KeyCount {
     pub count: u64,
 }
 
+/// Real-time input event for D-Bus signal transmission.
+///
+/// Emitted by the daemon's event loop and consumed by the overlay process
+/// to display keystrokes in real-time.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum InputEvent {
+    /// A key was pressed. The name may include modifiers (e.g. `"Ctrl+C"`).
+    KeyPress {
+        /// Human-readable key name.
+        name: String,
+    },
+    /// A key was released.
+    KeyRelease {
+        /// Human-readable key name matching the corresponding press event.
+        name: String,
+    },
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -7,6 +7,8 @@ use zbus::zvariant::Value;
 const BUS_NAME: &str = "io.github.x0x5c0f.KeyStats";
 const OBJ_PATH: &str = "/io/github/0x5c0f/KeyStats";
 const IFACE: &str = "io.github.x0x5c0f.KeyStats1";
+/// Maximum number of /dev/input/eventN devices to scan.
+const MAX_EVENT_DEVICES: u32 = 64;
 
 fn get_u64(map: &HashMap<String, Value<'_>>, key: &str) -> u64 {
     match map.get(key) {
@@ -87,8 +89,7 @@ pub fn doctor() {
     let mut pointers = Vec::new();
     let mut other = Vec::new();
 
-    for i in 0..64 {
-        // TODO: extract MAX_EVENT_DEVICES to shared constant
+    for i in 0..MAX_EVENT_DEVICES {
         let path = format!("/dev/input/event{}", i);
         if !std::path::Path::new(&path).exists() {
             continue;

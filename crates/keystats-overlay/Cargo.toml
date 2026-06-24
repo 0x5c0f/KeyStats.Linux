@@ -1,0 +1,22 @@
+[package]
+name = "keystats-overlay"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+keystats-core = { path = "../keystats-core" }
+gtk = { version = "0.11", package = "gtk4" }
+gdk4-x11 = { version = "0.11", optional = true }
+x11-dl = { version = "2", optional = true }
+gtk4-layer-shell = { version = "0.8", optional = true }
+zbus = "5"
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+[features]
+default = ["x11"]
+x11 = ["dep:gdk4-x11", "dep:x11-dl"]
+wayland = ["dep:gtk4-layer-shell"]

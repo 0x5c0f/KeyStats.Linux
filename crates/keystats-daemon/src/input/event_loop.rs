@@ -1,7 +1,9 @@
-use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex, mpsc};
 use std::time::Duration;
 
 use evdev::EventSummary;
+use keystats_core::InputEvent;
 
 use super::device::{DeviceKind, InputDevice};
 use super::keymap;
@@ -10,9 +12,76 @@ use crate::stats::manager::{StatsManager, lock_stats};
 /// Polling interval for non-blocking device reads (~125 Hz).
 const POLL_INTERVAL: Duration = Duration::from_millis(8);
 
+/// Tracks held modifier keys for combo display (e.g. Ctrl+C).
+#[derive(Debug, Default)]
+struct ModifierState {
+    shift: bool,
+    ctrl: bool,
+    alt: bool,
+    meta: bool,
+}
+
+impl ModifierState {
+    /// Update state from a key code. Returns `true` if the code is a modifier.
+    fn update(&mut self, code: u16, pressed: bool) -> bool {
+        if keymap::is_shift(code) {
+            self.shift = pressed;
+            true
+        } else if keymap::is_ctrl(code) {
+            self.ctrl = pressed;
+            true
+        } else if keymap::is_alt(code) {
+            self.alt = pressed;
+            true
+        } else if keymap::is_meta(code) {
+            self.meta = pressed;
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Build a combo name: prefix non-Shift modifiers to the base key name.
+    /// Shift is excluded because it's already handled by `shifted_key_name()`.
+    /// E.g. if Ctrl is held, returns "Ctrl+A". If Ctrl+Shift, returns "Ctrl+A" (Shift baked in).
+    fn combo_name(&self, base: &str) -> String {
+        let mut parts = Vec::new();
+        if self.ctrl {
+            parts.push("Ctrl");
+        }
+        if self.alt {
+            parts.push("Alt");
+        }
+        if self.meta {
+            parts.push("Super");
+        }
+        if parts.is_empty() {
+            base.to_string()
+        } else {
+            parts.push(base);
+            parts.join("+")
+        }
+    }
+
+    /// Returns `true` if any non-Shift modifier is currently held.
+    fn combo_modifiers_held(&self) -> bool {
+        self.ctrl || self.alt || self.meta
+    }
+}
+
 /// Process a batch of events from one device, calling the appropriate
 /// StatsManager recording methods. Returns the number of events processed.
-fn process_device(device: &mut InputDevice, stats: &mut StatsManager) -> usize {
+///
+/// `event_tx` is an optional channel for real-time input events (overlay).
+/// `modifiers` tracks held modifier keys for combo display.
+/// `held_keys` tracks which names were sent on press, so release uses the same name.
+fn process_device(
+    device: &mut InputDevice,
+    stats: &mut StatsManager,
+    event_tx: &Option<mpsc::Sender<InputEvent>>,
+    modifiers: &mut ModifierState,
+    held_keys: &mut HashMap<u16, String>,
+) -> usize {
     let mut count = 0;
     let mut pending_dx: f64 = 0.0;
     let mut pending_dy: f64 = 0.0;
@@ -28,31 +97,68 @@ fn process_device(device: &mut InputDevice, stats: &mut StatsManager) -> usize {
                 count += 1;
                 let code_u16 = code.0;
 
+                if value == 2 {
+                    // Auto-repeat — skip entirely
+                    continue;
+                }
+
+                let is_mod = keymap::is_shift(code_u16)
+                    || keymap::is_ctrl(code_u16)
+                    || keymap::is_alt(code_u16)
+                    || keymap::is_meta(code_u16);
+
                 match value {
                     1 => {
-                        // Check for mouse button first — some mice report as
-                        // KeyboardPointer (they have both keys and relative axes),
-                        // and BTN_LEFT etc. must always be clicks, not key presses.
+                        // Press: update modifier state first, then send event
+                        if is_mod {
+                            modifiers.update(code_u16, true);
+                        }
+
                         if let Some(role) = keymap::button_role(code_u16) {
                             stats.record_click(role);
                         } else {
                             match device.kind {
                                 DeviceKind::Keyboard | DeviceKind::KeyboardPointer => {
-                                    let name = keymap::key_name(code_u16);
+                                    let base_name = if modifiers.shift {
+                                        keymap::shifted_key_name(code_u16)
+                                            .map(String::from)
+                                            .unwrap_or_else(|| keymap::key_name(code_u16))
+                                    } else {
+                                        keymap::key_name(code_u16)
+                                    };
+                                    let name = if !is_mod && modifiers.combo_modifiers_held() {
+                                        modifiers.combo_name(&base_name)
+                                    } else {
+                                        base_name
+                                    };
                                     stats.record_key_press(&name, true);
+                                    if let Some(tx) = event_tx {
+                                        let _ = tx.send(InputEvent::KeyPress { name: name.clone() });
+                                    }
+                                    // Track sent name so release uses the same name
+                                    held_keys.insert(code_u16, name);
                                 }
-                                DeviceKind::Pointer | DeviceKind::Other => {
-                                    // Non-button key on a pointer — ignore
-                                }
+                                DeviceKind::Pointer | DeviceKind::Other => {}
                             }
                         }
                     }
-                    2 => {
-                        // Auto-repeat — skip (matching macOS behavior)
+                    0 => {
+                        // Release: send event first, then update modifier state
+                        if keymap::button_role(code_u16).is_none()
+                            && let DeviceKind::Keyboard | DeviceKind::KeyboardPointer = device.kind
+                            && let Some(tx) = event_tx
+                        {
+                            // Use stored name from press to ensure match
+                            let name = held_keys.remove(&code_u16)
+                                .unwrap_or_else(|| keymap::key_name(code_u16));
+                            let _ = tx.send(InputEvent::KeyRelease { name });
+                        }
+                        // Update modifier state AFTER sending release event
+                        if is_mod {
+                            modifiers.update(code_u16, false);
+                        }
                     }
-                    _ => {
-                        // Key release — ignore for counting
-                    }
+                    _ => {}
                 }
             }
 
@@ -109,7 +215,11 @@ const RESCAN_INTERVAL: Duration = Duration::from_secs(30);
 /// Run the main input event loop. Blocks the current thread.
 /// Reads from all discovered devices in non-blocking mode,
 /// calling StatsManager for each processed event.
-pub fn run(stats: Arc<Mutex<StatsManager>>) -> ! {
+///
+/// `event_tx` is an optional channel sender for real-time input events.
+/// When `Some`, key press/release events are forwarded to the receiver
+/// (used by the overlay process via D-Bus signals). When `None`, no events are sent.
+pub fn run(stats: Arc<Mutex<StatsManager>>, event_tx: Option<mpsc::Sender<InputEvent>>) -> ! {
     let (mut devices, _blocked) = InputDevice::discover();
 
     tracing::info!(
@@ -124,6 +234,8 @@ pub fn run(stats: Arc<Mutex<StatsManager>>) -> ! {
 
     let poll_interval = POLL_INTERVAL;
     let mut last_rescan = std::time::Instant::now();
+    let mut modifiers = ModifierState::default();
+    let mut held_keys = HashMap::new();
 
     loop {
         let mut total = 0usize;
@@ -132,7 +244,7 @@ pub fn run(stats: Arc<Mutex<StatsManager>>) -> ! {
                 continue;
             };
             for device in &mut devices {
-                total += process_device(device, &mut mgr);
+                total += process_device(device, &mut mgr, &event_tx, &mut modifiers, &mut held_keys);
             }
         }
 

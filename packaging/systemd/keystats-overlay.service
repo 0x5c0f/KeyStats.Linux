@@ -1,0 +1,16 @@
+[Unit]
+Description=KeyStats keystroke visualization overlay
+Documentation=https://github.com/0x5c0f/KeyStats.Linux
+After=keystats.service graphical-session.target
+PartOf=graphical-session.target
+Requires=keystats.service
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/keystats-overlay
+Restart=on-failure
+RestartSec=5
+Environment=RUST_LOG=info
+
+[Install]
+WantedBy=graphical-session.target

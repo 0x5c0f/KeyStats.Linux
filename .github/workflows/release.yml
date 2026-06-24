@@ -19,6 +19,7 @@ jobs:
           path: |
             target/release/keystats-daemon
             target/release/keystatsctl
+            target/release/keystats-overlay
 
   build-extension:
     runs-on: ubuntu-latest
@@ -66,7 +67,9 @@ jobs:
           mkdir -p "${DIST_NAME}/bin" "${DIST_NAME}/systemd" "${DIST_NAME}/udev"
           cp artifacts/binaries/keystats-daemon "${DIST_NAME}/bin/"
           cp artifacts/binaries/keystatsctl "${DIST_NAME}/bin/"
+          cp artifacts/binaries/keystats-overlay "${DIST_NAME}/bin/"
           cp packaging/systemd/keystats.service "${DIST_NAME}/systemd/"
+          cp packaging/systemd/keystats-overlay.service "${DIST_NAME}/systemd/"
           cp packaging/udev/60-keystats-input.rules "${DIST_NAME}/udev/"
           cp packaging/dist/Makefile "${DIST_NAME}/"
           cp packaging/dist/README.md "${DIST_NAME}/"

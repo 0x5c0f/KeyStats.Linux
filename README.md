@@ -22,7 +22,18 @@ Inspired by [KeyStats](https://github.com/debugtheworldbot/KeyStats) (macOS &amp
 │  • Preferences window │                             │  • Stats manager    │
 └──────────────────────┘                             └─────────┬───────────┘
                                                                │
+                                                     D-Bus signals
+                                                               │
                                                      ┌─────────▼───────────┐
+                                                     │  keystats-overlay    │
+                                                     │  (GTK4 overlay)     │
+                                                     │                      │
+                                                     │  • Real-time keys    │
+                                                     │  • Fade animation    │
+                                                     │  • X11/Wayland       │
+                                                     └──────────────────────┘
+
+                                                     ┌──────────────────────┐
                                                      │    keystatsctl       │
                                                      │    (CLI tool)        │
                                                      │                      │
@@ -33,6 +44,7 @@ Inspired by [KeyStats](https://github.com/debugtheworldbot/KeyStats) (macOS &amp
 
 - **keystats-daemon** — Reads `/dev/input/event*` via evdev, aggregates privacy-preserving stats, persists to SQLite, exposes D-Bus API
 - **GNOME Shell extension** — Panel indicator + popup dashboard + preferences, consumes daemon data over D-Bus
+- **keystats-overlay** — Standalone keystroke visualization overlay for screencasting, subscribes to daemon's D-Bus signals
 - **keystatsctl** — CLI for diagnostics and status checks
 
 ## Features
@@ -43,6 +55,7 @@ Inspired by [KeyStats](https://github.com/debugtheworldbot/KeyStats) (macOS &amp
 - KPS/CPS rate display with peak tracking
 - 7-day history with daily bar charts (GNOME Shell popup)
 - `keystatsctl history` — terminal bar charts with configurable day range
+- **Keystroke overlay** — real-time key visualization with fade-out animation (for screencasting/streaming)
 - System theme-aware (dark/light)
 - Internationalization (English + Simplified Chinese)
 - Periodic device re-scan for USB/Bluetooth hotplug
@@ -102,6 +115,21 @@ keystatsctl keys                 # today's key breakdown
 keystatsctl keys --date 2026-06-01 --limit 10
 ```
 
+### Keystroke Overlay (optional)
+
+The overlay displays real-time key presses for screencasting or streaming:
+
+```bash
+# Install overlay
+make install-overlay
+
+# Run overlay (default: top-left, 800ms fade)
+keystats-overlay
+
+# Customize position and appearance
+keystats-overlay --position bottom-right --opacity 30 --fade-duration 1000
+```
+
 For detailed installation options, permissions troubleshooting, and packaging instructions, see [packaging/README.md](packaging/README.md).
 
 ## Project Structure
@@ -113,7 +141,8 @@ KeyStats.Linux/
 ├── crates/
 │   ├── keystats-core/            ← Shared data model, formatting, import/export
 │   ├── keystats-daemon/          ← evdev input pipeline, SQLite, D-Bus service
-│   └── keystatsctl/              ← CLI diagnostics tool
+│   ├── keystatsctl/              ← CLI diagnostics tool
+│   └── keystats-overlay/         ← GTK4 keystroke visualization overlay
 ├── gnome-extension/              ← GNOME Shell extension (GJS)
 │   ├── extension.js              ← Panel indicator + popup UI
 │   ├── prefs.js                  ← Preferences window (Adw/GTK4)

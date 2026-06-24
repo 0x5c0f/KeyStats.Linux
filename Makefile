@@ -1,8 +1,8 @@
 # KeyStats.Linux — Build, Package & Install
 # Usage:
-#   make build    — build daemon + CLI (release) and compile locale
-#   make install  — install daemon + systemd service + GNOME extension
-#   make upgrade  — safe upgrade: daemon + systemd + extension (disable→install→enable)
+#   make build    — build daemon + CLI + overlay (release) and compile locale
+#   make install  — install daemon + overlay + systemd service + GNOME extension
+#   make upgrade  — safe upgrade: daemon + overlay + systemd + extension (disable→install→enable)
 #   make zip      — package extension as zip for distribution
 #   make dist     — create binary tarball for GitHub releases
 #   make test     — cargo test (all crates)
@@ -35,15 +35,28 @@ install: install-daemon install-systemd install-extension
 	@echo "Install complete. Reload GNOME Shell (Alt+F2 → r on X11, or log out/in on Wayland), then run:"
 	@echo "  systemctl --user enable --now keystats"
 	@echo "  gnome-extensions enable keystats@0x5c0f.github.io"
+	@echo ""
+	@echo "Optional: install the keystroke overlay for screencasting:"
+	@echo "  make install-overlay"
 
 install-daemon: build-rust
 	mkdir -p $(PREFIX)/bin
 	cp target/release/keystats-daemon $(PREFIX)/bin/
 	cp target/release/keystatsctl $(PREFIX)/bin/
 
+install-overlay: build-rust
+	mkdir -p $(PREFIX)/bin
+	cp target/release/keystats-overlay $(PREFIX)/bin/
+	mkdir -p $(SYSTEMD_USER)
+	cp packaging/systemd/keystats-overlay.service $(SYSTEMD_USER)/
+	systemctl --user daemon-reload
+	@echo "Overlay installed. Run 'keystats-overlay --help' for options."
+	@echo "To auto-start with session: systemctl --user enable keystats-overlay"
+
 install-systemd:
 	mkdir -p $(SYSTEMD_USER)
 	cp packaging/systemd/keystats.service $(SYSTEMD_USER)/
+	cp packaging/systemd/keystats-overlay.service $(SYSTEMD_USER)/
 	systemctl --user daemon-reload
 
 install-extension: build-locale
@@ -59,10 +72,16 @@ install-extension: build-locale
 upgrade:
 	@echo "Stopping keystats service..."
 	@systemctl --user stop keystats.service || true
+	@systemctl --user stop keystats-overlay.service || true
 	@echo "Disabling extension..."
 	@gnome-extensions disable keystats@0x5c0f.github.io || true
 	@sleep 1
 	$(MAKE) install-daemon install-systemd
+	@# Also install overlay if it was previously installed
+	@if [ -f $(PREFIX)/bin/keystats-overlay ]; then \
+		cp target/release/keystats-overlay $(PREFIX)/bin/; \
+		echo "Overlay binary updated."; \
+	fi
 	$(MAKE) build-locale
 	@mkdir -p $(EXT_DIR)
 	@cp gnome-extension/metadata.json $(EXT_DIR)/
@@ -74,6 +93,7 @@ upgrade:
 	@glib-compile-schemas $(EXT_DIR)/schemas/
 	@echo "Restarting keystats service..."
 	@systemctl --user restart keystats.service || true
+	@systemctl --user restart keystats-overlay.service || true
 	@sleep 1
 	@echo "Re-enabling extension..."
 	@gnome-extensions enable keystats@0x5c0f.github.io || true
@@ -105,7 +125,9 @@ dist: build
 	@mkdir -p $(DIST_DIR)/bin $(DIST_DIR)/systemd $(DIST_DIR)/udev
 	cp target/release/keystats-daemon $(DIST_DIR)/bin/
 	cp target/release/keystatsctl $(DIST_DIR)/bin/
+	cp target/release/keystats-overlay $(DIST_DIR)/bin/
 	cp packaging/systemd/keystats.service $(DIST_DIR)/systemd/
+	cp packaging/systemd/keystats-overlay.service $(DIST_DIR)/systemd/
 	cp packaging/udev/60-keystats-input.rules $(DIST_DIR)/udev/
 	cp packaging/dist/Makefile $(DIST_DIR)/
 	cp packaging/dist/README.md $(DIST_DIR)/

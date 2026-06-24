@@ -4,8 +4,9 @@ mod input;
 mod permissions;
 mod stats;
 
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, mpsc};
 
+use keystats_core::InputEvent;
 use stats::manager::StatsManager;
 
 fn main() {
@@ -24,7 +25,13 @@ fn main() {
         tracing::error!("Cannot read any input devices. Check 'input' group membership.");
     }
 
-    let manager = StatsManager::new().expect("Failed to initialize StatsManager");
+    let manager = match StatsManager::new() {
+        Ok(m) => m,
+        Err(e) => {
+            tracing::error!("Failed to initialize StatsManager: {e}");
+            std::process::exit(1);
+        }
+    };
 
     let snapshot = manager.snapshot();
     tracing::info!(
@@ -37,10 +44,13 @@ fn main() {
 
     let stats = Arc::new(Mutex::new(manager));
 
-    // Start D-Bus service on background thread
-    let _dbus_handle = dbus::service::KeyStatsService::start(stats.clone());
+    // Channel for real-time input events (event loop → D-Bus signals)
+    let (event_tx, event_rx) = mpsc::channel::<InputEvent>();
+
+    // Start D-Bus service on background thread with signal forwarding
+    dbus::service::KeyStatsService::start(stats.clone(), event_rx);
 
     // Run input event loop on main thread (blocks until killed)
     tracing::info!("Entering input event loop...");
-    input::event_loop::run(stats);
+    input::event_loop::run(stats, Some(event_tx));
 }

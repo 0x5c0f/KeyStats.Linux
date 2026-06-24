@@ -1,13 +1,20 @@
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
 
-use keystats_core::ImportMode;
-use zbus::blocking::Connection;
+use keystats_core::{ImportMode, InputEvent};
+use zbus::blocking::connection;
 use zbus::interface;
 
 use crate::permissions;
 use crate::stats::manager::{StatsManager, lock_stats};
+
+/// D-Bus object path for the KeyStats service.
+const OBJECT_PATH: &str = "/io/github/0x5c0f/KeyStats";
+/// D-Bus well-known bus name.
+const BUS_NAME: &str = "io.github.x0x5c0f.KeyStats";
+/// D-Bus interface name.
+const INTERFACE_NAME: &str = "io.github.x0x5c0f.KeyStats1";
 
 pub struct KeyStatsService {
     stats: Arc<Mutex<StatsManager>>,
@@ -18,27 +25,67 @@ impl KeyStatsService {
         Self { stats }
     }
 
-    /// Start the D-Bus service on a background thread. Returns the JoinHandle.
-    pub fn start(stats: Arc<Mutex<StatsManager>>) -> thread::JoinHandle<()> {
+    /// Start the D-Bus service on a background thread.
+    ///
+    /// `event_rx` receives real-time input events from the event loop.
+    /// Each event is forwarded as a D-Bus signal for the overlay process.
+    pub fn start(stats: Arc<Mutex<StatsManager>>, event_rx: mpsc::Receiver<InputEvent>) {
         thread::spawn(move || {
             let service = Self::new(stats);
 
-            let connection = Connection::session().expect("Failed to connect to session D-Bus");
+            let connection = match connection::Builder::session()
+                .and_then(|b| b.name(BUS_NAME))
+                .and_then(|b| b.serve_at(OBJECT_PATH, service))
+                .and_then(|b| b.build())
+            {
+                Ok(c) => c,
+                Err(e) => {
+                    tracing::error!("Failed to start D-Bus service: {e}");
+                    return;
+                }
+            };
 
-            connection
-                .request_name("io.github.x0x5c0f.KeyStats")
-                .expect("Failed to register D-Bus service name");
+            tracing::info!("D-Bus service registered: {BUS_NAME}");
 
-            connection
-                .object_server()
-                .at("/io/github/0x5c0f/KeyStats", service)
-                .expect("Failed to register D-Bus object");
-
-            tracing::info!("D-Bus service registered: io.github.x0x5c0f.KeyStats");
+            // Clone connection for the signal forwarding thread
+            let conn_clone = connection.clone();
+            thread::spawn(move || {
+                forward_key_events(conn_clone, event_rx);
+            });
 
             // Keep the connection alive
             std::thread::park();
-        })
+        });
+    }
+}
+
+/// Forward input events from the channel as D-Bus signals.
+fn forward_key_events(connection: zbus::blocking::Connection, event_rx: mpsc::Receiver<InputEvent>) {
+    while let Ok(event) = event_rx.recv() {
+        match event {
+            InputEvent::KeyPress { name } => {
+                if let Err(e) = connection.emit_signal(
+                    None::<&str>,
+                    OBJECT_PATH,
+                    INTERFACE_NAME,
+                    "KeyPressed",
+                    &(&name,),
+                ) {
+                    tracing::trace!("Failed to emit KeyPressed signal: {e}");
+                }
+            }
+            InputEvent::KeyRelease { name } => {
+                if let Err(e) = connection.emit_signal(
+                    None::<&str>,
+                    OBJECT_PATH,
+                    INTERFACE_NAME,
+                    "KeyReleased",
+                    &(&name,),
+                ) {
+                    tracing::trace!("Failed to emit KeyReleased signal: {e}");
+                }
+            }
+        }
     }
 }
 
