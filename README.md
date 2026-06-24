@@ -120,6 +120,10 @@ keystatsctl keys --date 2026-06-01 --limit 10
 
 The overlay displays real-time key presses for screencasting or streaming:
 
+<p align="center">
+  <img src="docs/images/example_overlay.png" alt="Keystroke Overlay" />
+</p>
+
 ```bash
 # Install overlay
 make install-overlay

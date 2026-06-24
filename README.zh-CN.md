@@ -120,6 +120,10 @@ keystatsctl keys --date 2026-06-01 --limit 10
 
 悬浮层用于屏幕录制或直播时显示实时按键：
 
+<p align="center">
+  <img src="docs/images/example_overlay.png" alt="按键悬浮层" />
+</p>
+
 ```bash
 # 安装悬浮层
 make install-overlay
