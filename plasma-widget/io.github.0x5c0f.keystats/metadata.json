@@ -1,0 +1,17 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "Community Port"
+            }
+        ],
+        "Category": "System Information",
+        "Description": "Privacy-first keyboard and mouse statistics for Linux",
+        "Icon": "input-keyboard",
+        "Id": "io.github.0x5c0f.keystats",
+        "Name": "KeyStats",
+        "Version": "1.0"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

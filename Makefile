@@ -2,6 +2,7 @@
 # Usage:
 #   make build    — build daemon + CLI + overlay (release) and compile locale
 #   make install  — install daemon + overlay + systemd service + GNOME extension
+#   make install-plasma — install KDE Plasma 6 widget plasmoid
 #   make upgrade  — safe upgrade: daemon + overlay + systemd + extension (disable→install→enable)
 #   make zip      — package extension as zip for distribution
 #   make dist     — create binary tarball for GitHub releases
@@ -12,6 +13,7 @@
 PREFIX       := $(HOME)/.local
 SYSTEMD_USER := $(HOME)/.config/systemd/user
 EXT_DIR      := $(HOME)/.local/share/gnome-shell/extensions/keystats@0x5c0f.github.io
+PLASMA_DIR   := $(HOME)/.local/share/plasma/plasmoids/io.github.0x5c0f.keystats
 
 VERSION      := $(shell cargo metadata --no-deps --format-version=1 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin)['packages'][0]['version'])" 2>/dev/null || echo "0.1.0")
 DIST_NAME    := keystats-$(VERSION)-linux-x86_64
@@ -151,3 +153,12 @@ check:
 clean:
 	cargo clean
 	$(MAKE) -C gnome-extension clean
+
+.PHONY: install-plasma uninstall-plasma
+install-plasma:
+	mkdir -p $(PLASMA_DIR)
+	cp -r plasma-widget/io.github.0x5c0f.keystats/* $(PLASMA_DIR)/
+	@echo "Plasma 6 widget installed. Right-click panel -> Add or Manage Widgets -> KeyStats."
+
+uninstall-plasma:
+	rm -rf $(PLASMA_DIR)
