@@ -1,4 +1,4 @@
-use evdev::Device;
+use evdev::{AbsoluteAxisCode, Device};
 
 /// Maximum event device nodes to scan (/dev/input/event0..63).
 const MAX_EVENT_DEVICES: u32 = 64;
@@ -8,9 +8,9 @@ const MAX_EVENT_DEVICES: u32 = 64;
 pub enum DeviceKind {
     /// Keyboard-only input device.
     Keyboard,
-    /// Mouse or touchpad (relative axes).
+    /// Mouse or touchpad (relative or absolute axes).
     Pointer,
-    /// Device has both key and relative capabilities.
+    /// Device has both key and pointer capabilities.
     KeyboardPointer,
     /// Other input device (buttons, etc.).
     Other,
@@ -41,15 +41,23 @@ impl InputDevice {
 
         let has_keys = caps.contains(evdev::EventType::KEY);
         let has_relative = caps.contains(evdev::EventType::RELATIVE);
+        let has_touchpad_abs = caps.contains(evdev::EventType::ABSOLUTE)
+            && device.supported_absolute_axes().is_some_and(|axes| {
+                axes.contains(AbsoluteAxisCode::ABS_MT_POSITION_X)
+                    || axes.contains(AbsoluteAxisCode::ABS_X)
+            });
+
+        let is_pointer = has_relative || has_touchpad_abs;
         let key_count = device.supported_keys().map(|k| k.iter().count()).unwrap_or(0);
 
         // Filters: skip devices that can't contribute to our metrics
-        if !has_keys && !has_relative {
+        if !has_keys && !is_pointer {
             return Ok(None);
         }
 
-        let kind = match (has_keys, has_relative, key_count) {
-            (true, true, _) => DeviceKind::KeyboardPointer,
+        let kind = match (has_keys, is_pointer, key_count) {
+            (true, true, k) if k > 10 => DeviceKind::KeyboardPointer,
+            (true, true, _) => DeviceKind::Pointer, // Touchpads/mice with only mouse/touch buttons
             (true, false, k) if k > 10 => DeviceKind::Keyboard,
             (true, false, _) => DeviceKind::Other, // buttons-only (sleep, power, etc.)
             (false, true, _) => DeviceKind::Pointer,
@@ -61,6 +69,7 @@ impl InputDevice {
 
         Ok(Some(Self { path: path.to_string(), name, kind, device }))
     }
+    // ... keep discover() and tests unchanged
 
     /// Scan all /dev/input/event* nodes and return classified devices.
     pub fn discover() -> (Vec<Self>, Vec<String>) {
