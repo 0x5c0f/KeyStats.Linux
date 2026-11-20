@@ -99,9 +99,13 @@ impl ModifierState {
 #[derive(Debug, Default)]
 struct TouchpadState {
     touching: bool,
+    current_slot: usize,
     finger_count: u8,
     max_fingers: u8,
     moved: bool,
+    physical_clicked: bool,
+    start_x: Option<i32>,
+    start_y: Option<i32>,
     last_x: Option<i32>,
     last_y: Option<i32>,
     touch_start: Option<std::time::Instant>,
@@ -109,10 +113,14 @@ struct TouchpadState {
 
 impl TouchpadState {
     fn reset_finger(&mut self) {
+        self.current_slot = 0;
+        self.start_x = None;
+        self.start_y = None;
         self.last_x = None;
         self.last_y = None;
         self.touch_start = None;
         self.moved = false;
+        self.physical_clicked = false;
         self.max_fingers = 0;
     }
 }
@@ -160,10 +168,11 @@ fn process_device(
                             tp_state.moved = false;
                             tp_state.max_fingers = tp_state.finger_count.max(1);
                         } else if value == 0 {
-                            // Detect quick tap-to-click (< 250ms without large movement)
-                            if let Some(start) = tp_state.touch_start
+                            // Detect quick tap-to-click (< 250ms without large movement or physical ClickPad press)
+                            if !tp_state.physical_clicked
+                                && let Some(start) = tp_state.touch_start
                                 && !tp_state.moved
-                                && start.elapsed() < Duration::from_millis(250)
+                                && start.elapsed() < Duration::from_millis(300)
                             {
                                 let role = match tp_state.max_fingers {
                                     2 => "right",
@@ -217,7 +226,17 @@ fn process_device(
                         }
 
                         if let Some(role) = keymap::button_role(code_u16) {
-                            stats.record_click(role);
+                            let effective_role = if role == "left" && tp_state.touching {
+                                tp_state.physical_clicked = true;
+                                match tp_state.max_fingers.max(tp_state.finger_count) {
+                                    2 => "right",
+                                    3 => "middle",
+                                    _ => "left",
+                                }
+                            } else {
+                                role
+                            };
+                            stats.record_click(effective_role);
                         } else {
                             match device.kind {
                                 DeviceKind::Keyboard | DeviceKind::KeyboardPointer => {
@@ -290,58 +309,60 @@ fn process_device(
 
             EventSummary::AbsoluteAxis(_, code, value) => {
                 count += 1;
-                // Only compute deltas while a finger is touching (or if device doesn't emit BTN_TOUCH)
                 match code.0 {
-                    0x00 | 0x35 => {
-                        // ABS_X (0x00) or ABS_MT_POSITION_X (0x35)
-                        if let Some(prev_x) = tp_state.last_x {
-                            let dx = (value - prev_x) as f64;
-                            // Scale down high-DPI touchpad units (~0.35x) to roughly match mouse pixels
-                            let scaled_dx = dx * 0.35;
-                            if scaled_dx.abs() > 2.0 {
-                                tp_state.moved = true;
-                            }
-                            if tp_state.finger_count >= 2 {
-                                stats.add_scroll_distance(scaled_dx * 0.2);
-                            } else {
-                                pending_dx += scaled_dx;
-                            }
+                    0x2f => {
+                        // ABS_MT_SLOT: track active finger slot so slot 1+ never overwrites slot 0
+                        tp_state.current_slot = value.max(0) as usize;
+                    }
+                    0x39 => {
+                        // ABS_MT_TRACKING_ID: -1 means finger lifted from current slot
+                        if value < 0 && tp_state.current_slot == 0 {
+                            tp_state.last_x = None;
+                            tp_state.last_y = None;
                         }
-                        tp_state.last_x = Some(value);
+                    }
+                    0x00 | 0x35 => {
+                        // ABS_X (0x00) or ABS_MT_POSITION_X (0x35): only track primary slot 0
+                        if code.0 == 0x00 || tp_state.current_slot == 0 {
+                            if let Some(prev_x) = tp_state.last_x {
+                                let dx = (value - prev_x) as f64;
+                                // Scale down high-DPI touchpad units (~0.35x) to roughly match mouse pixels
+                                let scaled_dx = dx * 0.35;
+                                let sx = *tp_state.start_x.get_or_insert(prev_x);
+                                if ((value - sx) as f64 * 0.35).abs() > 35.0 {
+                                    tp_state.moved = true;
+                                }
+                                if tp_state.finger_count >= 2 {
+                                    stats.add_scroll_distance(scaled_dx * 0.2);
+                                } else {
+                                    pending_dx += scaled_dx;
+                                }
+                            }
+                            tp_state.last_x = Some(value);
+                        }
                     }
                     0x01 | 0x36 => {
-                        // ABS_Y (0x01) or ABS_MT_POSITION_Y (0x36)
-                        if let Some(prev_y) = tp_state.last_y {
-                            let dy = (value - prev_y) as f64;
-                            let scaled_dy = dy * 0.35;
-                            if scaled_dy.abs() > 2.0 {
-                                tp_state.moved = true;
+                        // ABS_Y (0x01) or ABS_MT_POSITION_Y (0x36): only track primary slot 0
+                        if code.0 == 0x01 || tp_state.current_slot == 0 {
+                            if let Some(prev_y) = tp_state.last_y {
+                                let dy = (value - prev_y) as f64;
+                                let scaled_dy = dy * 0.35;
+                                let sy = *tp_state.start_y.get_or_insert(prev_y);
+                                if ((value - sy) as f64 * 0.35).abs() > 35.0 {
+                                    tp_state.moved = true;
+                                }
+                                if tp_state.finger_count >= 2 {
+                                    stats.add_scroll_distance(scaled_dy.abs() * 0.005);
+                                } else {
+                                    pending_dy += scaled_dy;
+                                }
                             }
-                            if tp_state.finger_count >= 2 {
-                                stats.add_scroll_distance(scaled_dy.abs() * 0.005);
-                            } else {
-                                pending_dy += scaled_dy;
-                            }
+                            tp_state.last_y = Some(value);
                         }
-                        tp_state.last_y = Some(value);
-                    }
-                    0x39 if value == -1 => {
-                        // ABS_MT_TRACKING_ID == -1 indicates finger lifted
-                        tp_state.last_x = None;
-                        tp_state.last_y = None;
                     }
                     _ => {}
                 }
             }
-
-            EventSummary::Synchronization(_, code, _)
-                if code.0 == 0 && (pending_dx != 0.0 || pending_dy != 0.0) =>
-            {
-                stats.add_mouse_distance(pending_dx, pending_dy);
-                pending_dx = 0.0;
-                pending_dy = 0.0;
-            }
-
             _ => {}
         }
 

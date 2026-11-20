@@ -6,7 +6,7 @@ A native KDE Plasma 6 Plasmoid for `keystats-daemon` that displays live keyboard
 - **Adaptive Panel Indicator:** Automatically stacks keystrokes and mouse clicks vertically on thick panels (`>= 36px`) or displays them inline on thin panels.
 - **Live KPS & CPS Badges:** Real-time and peak keystrokes/clicks per second in the popup header.
 - **2×2 Metric Cards:** Today's Keystrokes, Mouse Clicks, Mouse Distance (`px` → `m` → `km`), and Scroll Distance.
-- **Last 7 Days Chart:** Interactive **Keys / Clicks** toggle bar chart powered by `keystatsctl history`.
+- **Last 7 Days Chart:** Interactive **Keys / Clicks** toggle line chart powered by `keystatsctl history`.
 - **Top Keys Today:** Breakdown of your top 5 most-pressed keys with proportional bars.
 
 ![img](./img/Screenshot.png)
