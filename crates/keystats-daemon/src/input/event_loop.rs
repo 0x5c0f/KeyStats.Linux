@@ -85,16 +85,43 @@ impl ModifierState {
 
     /// Returns `true` if two or more modifiers are currently held.
     fn multiple_modifiers_held(&self) -> bool {
-        let count = [self.ctrl, self.shift, self.alt, self.meta]
-            .iter()
-            .filter(|&&v| v)
-            .count();
+        let count = [self.ctrl, self.shift, self.alt, self.meta].iter().filter(|&&v| v).count();
         count >= 2
     }
 
     /// Returns `true` if any non-Shift modifier is currently held.
     fn combo_modifiers_held(&self) -> bool {
         self.ctrl || self.alt || self.meta
+    }
+}
+
+/// Tracks per-touchpad state for absolute coordinate deltas, scrolling, and tap-to-click.
+#[derive(Debug, Default)]
+struct TouchpadState {
+    touching: bool,
+    current_slot: usize,
+    finger_count: u8,
+    max_fingers: u8,
+    moved: bool,
+    physical_clicked: bool,
+    start_x: Option<i32>,
+    start_y: Option<i32>,
+    last_x: Option<i32>,
+    last_y: Option<i32>,
+    touch_start: Option<std::time::Instant>,
+}
+
+impl TouchpadState {
+    fn reset_finger(&mut self) {
+        self.current_slot = 0;
+        self.start_x = None;
+        self.start_y = None;
+        self.last_x = None;
+        self.last_y = None;
+        self.touch_start = None;
+        self.moved = false;
+        self.physical_clicked = false;
+        self.max_fingers = 0;
     }
 }
 
@@ -110,6 +137,7 @@ fn process_device(
     event_tx: &Option<mpsc::Sender<InputEvent>>,
     modifiers: &mut ModifierState,
     held_keys: &mut HashMap<u16, String>,
+    tp_state: &mut TouchpadState,
 ) -> usize {
     let mut count = 0;
     let mut pending_dx: f64 = 0.0;
@@ -131,6 +159,60 @@ fn process_device(
                     continue;
                 }
 
+                match code_u16 {
+                    0x14a => {
+                        // BTN_TOUCH
+                        if value == 1 {
+                            tp_state.touching = true;
+                            tp_state.touch_start = Some(std::time::Instant::now());
+                            tp_state.moved = false;
+                            tp_state.max_fingers = tp_state.finger_count.max(1);
+                        } else if value == 0 {
+                            // Detect quick tap-to-click (< 250ms without large movement or physical ClickPad press)
+                            if !tp_state.physical_clicked
+                                && let Some(start) = tp_state.touch_start
+                                && !tp_state.moved
+                                && start.elapsed() < Duration::from_millis(300)
+                            {
+                                let role = match tp_state.max_fingers {
+                                    2 => "right",
+                                    3 => "middle",
+                                    _ => "left",
+                                };
+                                stats.record_click(role);
+                            }
+                            tp_state.touching = false;
+                            tp_state.reset_finger();
+                        }
+                        continue;
+                    }
+                    0x145 => {
+                        // BTN_TOOL_FINGER (1 finger)
+                        tp_state.finger_count = if value == 1 { 1 } else { 0 };
+                        tp_state.max_fingers = tp_state.max_fingers.max(tp_state.finger_count);
+                        continue;
+                    }
+                    0x14d => {
+                        // BTN_TOOL_DOUBLETAP (2 fingers)
+                        tp_state.finger_count = if value == 1 { 2 } else { 0 };
+                        tp_state.max_fingers = tp_state.max_fingers.max(tp_state.finger_count);
+                        continue;
+                    }
+                    0x14e => {
+                        // BTN_TOOL_TRIPLETAP (3 fingers)
+                        tp_state.finger_count = if value == 1 { 3 } else { 0 };
+                        tp_state.max_fingers = tp_state.max_fingers.max(tp_state.finger_count);
+                        continue;
+                    }
+                    0x14f => {
+                        // BTN_TOOL_QUADTAP (4 fingers)
+                        tp_state.finger_count = if value == 1 { 4 } else { 0 };
+                        tp_state.max_fingers = tp_state.max_fingers.max(tp_state.finger_count);
+                        continue;
+                    }
+                    _ => {}
+                }
+
                 let is_mod = keymap::is_shift(code_u16)
                     || keymap::is_ctrl(code_u16)
                     || keymap::is_alt(code_u16)
@@ -144,7 +226,17 @@ fn process_device(
                         }
 
                         if let Some(role) = keymap::button_role(code_u16) {
-                            stats.record_click(role);
+                            let effective_role = if role == "left" && tp_state.touching {
+                                tp_state.physical_clicked = true;
+                                match tp_state.max_fingers.max(tp_state.finger_count) {
+                                    2 => "right",
+                                    3 => "middle",
+                                    _ => "left",
+                                }
+                            } else {
+                                role
+                            };
+                            stats.record_click(effective_role);
                         } else {
                             match device.kind {
                                 DeviceKind::Keyboard | DeviceKind::KeyboardPointer => {
@@ -166,7 +258,8 @@ fn process_device(
                                     };
                                     stats.record_key_press(&name, true);
                                     if let Some(tx) = event_tx {
-                                        let _ = tx.send(InputEvent::KeyPress { name: name.clone() });
+                                        let _ =
+                                            tx.send(InputEvent::KeyPress { name: name.clone() });
                                     }
                                     // Track sent name so release uses the same name
                                     held_keys.insert(code_u16, name);
@@ -182,7 +275,8 @@ fn process_device(
                             && let Some(tx) = event_tx
                         {
                             // Use stored name from press to ensure match
-                            let name = held_keys.remove(&code_u16)
+                            let name = held_keys
+                                .remove(&code_u16)
                                 .unwrap_or_else(|| keymap::key_name(code_u16));
                             let _ = tx.send(InputEvent::KeyRelease { name });
                         }
@@ -213,14 +307,62 @@ fn process_device(
                 }
             }
 
-            EventSummary::Synchronization(_, code, _)
-                if code.0 == 0 && (pending_dx != 0.0 || pending_dy != 0.0) =>
-            {
-                stats.add_mouse_distance(pending_dx, pending_dy);
-                pending_dx = 0.0;
-                pending_dy = 0.0;
+            EventSummary::AbsoluteAxis(_, code, value) => {
+                count += 1;
+                match code.0 {
+                    0x2f => {
+                        // ABS_MT_SLOT: track active finger slot so slot 1+ never overwrites slot 0
+                        tp_state.current_slot = value.max(0) as usize;
+                    }
+                    0x39 => {
+                        // ABS_MT_TRACKING_ID: -1 means finger lifted from current slot
+                        if value < 0 && tp_state.current_slot == 0 {
+                            tp_state.last_x = None;
+                            tp_state.last_y = None;
+                        }
+                    }
+                    0x00 | 0x35 => {
+                        // ABS_X (0x00) or ABS_MT_POSITION_X (0x35): only track primary slot 0
+                        if code.0 == 0x00 || tp_state.current_slot == 0 {
+                            if let Some(prev_x) = tp_state.last_x {
+                                let dx = (value - prev_x) as f64;
+                                // Scale down high-DPI touchpad units (~0.35x) to roughly match mouse pixels
+                                let scaled_dx = dx * 0.35;
+                                let sx = *tp_state.start_x.get_or_insert(prev_x);
+                                if ((value - sx) as f64 * 0.35).abs() > 35.0 {
+                                    tp_state.moved = true;
+                                }
+                                if tp_state.finger_count >= 2 {
+                                    stats.add_scroll_distance(scaled_dx * 0.2);
+                                } else {
+                                    pending_dx += scaled_dx;
+                                }
+                            }
+                            tp_state.last_x = Some(value);
+                        }
+                    }
+                    0x01 | 0x36 => {
+                        // ABS_Y (0x01) or ABS_MT_POSITION_Y (0x36): only track primary slot 0
+                        if code.0 == 0x01 || tp_state.current_slot == 0 {
+                            if let Some(prev_y) = tp_state.last_y {
+                                let dy = (value - prev_y) as f64;
+                                let scaled_dy = dy * 0.35;
+                                let sy = *tp_state.start_y.get_or_insert(prev_y);
+                                if ((value - sy) as f64 * 0.35).abs() > 35.0 {
+                                    tp_state.moved = true;
+                                }
+                                if tp_state.finger_count >= 2 {
+                                    stats.add_scroll_distance(scaled_dy.abs() * 0.005);
+                                } else {
+                                    pending_dy += scaled_dy;
+                                }
+                            }
+                            tp_state.last_y = Some(value);
+                        }
+                    }
+                    _ => {}
+                }
             }
-
             _ => {}
         }
 
@@ -269,6 +411,7 @@ pub fn run(stats: Arc<Mutex<StatsManager>>, event_tx: Option<mpsc::Sender<InputE
     let mut last_rescan = std::time::Instant::now();
     let mut modifiers = ModifierState::default();
     let mut held_keys = HashMap::new();
+    let mut touchpad_states: HashMap<String, TouchpadState> = HashMap::new();
 
     loop {
         let mut total = 0usize;
@@ -277,7 +420,15 @@ pub fn run(stats: Arc<Mutex<StatsManager>>, event_tx: Option<mpsc::Sender<InputE
                 continue;
             };
             for device in &mut devices {
-                total += process_device(device, &mut mgr, &event_tx, &mut modifiers, &mut held_keys);
+                let tp_state = touchpad_states.entry(device.path.clone()).or_default();
+                total += process_device(
+                    device,
+                    &mut mgr,
+                    &event_tx,
+                    &mut modifiers,
+                    &mut held_keys,
+                    tp_state,
+                );
             }
         }
 
