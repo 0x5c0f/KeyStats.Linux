@@ -6,6 +6,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.plasma5support as Plasma5Support
 import org.kde.plasma.plasmoid
+import org.kde.plasma.core as PlasmaCore
 
 PlasmoidItem {
     id: root
@@ -252,6 +253,22 @@ PlasmoidItem {
             refreshAll();
 
     }
+    Plasmoid.contextualActions: [
+        PlasmaCore.Action {
+            text: "Keyboard Heatmap..."
+            icon.name: "input-keyboard"
+            onTriggered: {
+                heatmapWin.show()
+                heatmapWin.raise()
+                heatmapWin.requestActivate()
+            }
+        }
+    ]
+
+    HeatmapWindow {
+        id: heatmapWin
+    }
+
     Plasmoid.status: PlasmaCore.Types.ActiveStatus
     toolTipMainText: "KeyStats"
     toolTipSubText: root.daemonConnected ? ("Keys: " + root.keyPresses + "  |  Clicks: " + root.totalClicks + "\nDistance: " + root.mouseDistance + "  |  Scroll: " + root.scrollDistance) : "Daemon disconnected"
